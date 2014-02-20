@@ -1,23 +1,48 @@
+/* -*- Mode: C; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
+/*
+ * sedit.c
+ * Copyright (C) 2014 Jente Hidskes <hjdskes@gmail.com>
+ *
+ * sedit is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * sedit is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include <glib/gi18n.h>
 #include <glib/gprintf.h>
 #include <gtk/gtk.h>
 #include <gtksourceview/gtksource.h>
 
-typedef struct {
-	GtkWidget *view;
-	char *filename;
-} Editor;
+#include "sedit.h"
+#include "io.h"
 
-static void append_new_tab(Editor *editor);
-static char *open_file_get_filename(GtkWindow *parent);
-static void open_existing_file(GtkWindow *parent);
-static void open_new_file(void);
-static gboolean on_keypress_view(GtkWidget *widget, GdkEventKey *event);
-static gboolean on_keypress_window(GtkWidget *widget, GdkEventKey *event);
+void
+error_msg(const gchar *msg) {
+	GtkWidget *dialog;
 
-GtkWidget *tabs;
+	/* log to terminal window */
+	g_fprintf(stderr, msg);
 
-static void
+	/* create an error message dialog and display modally to the user */
+	dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+			GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, msg);
+
+	gtk_window_set_title(GTK_WINDOW(dialog), "Error!");
+	gtk_dialog_run(GTK_DIALOG (dialog));
+	gtk_widget_destroy(dialog);
+	g_free((gpointer)msg);
+}
+
+void
 append_new_tab(Editor *editor) {
 	GtkWidget *scroll, *label;
 	char *basename;
@@ -34,100 +59,35 @@ append_new_tab(Editor *editor) {
 	gtk_container_add(GTK_CONTAINER(scroll), editor->view);
 
 	if(gtk_notebook_append_page(GTK_NOTEBOOK(tabs), scroll, label) < 0)
-		g_fprintf(stderr, "Error: failed to add new tab\n");
+		error_msg("Error: failed to add new tab\n");
 	gtk_widget_show_all(tabs); //FIXME: why is this necessary?
 }
 
-static char*
-open_file_get_filename(GtkWindow *parent) {
-	GtkWidget *dialog;
-	char *filename = NULL;
-
-	dialog = gtk_file_chooser_dialog_new(_("Open File"), parent,
-			GTK_FILE_CHOOSER_ACTION_OPEN, _("_Cancel"), GTK_RESPONSE_CANCEL,
-			_("_Open"), GTK_RESPONSE_ACCEPT, NULL);
-	if(gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT)
-		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
-	gtk_widget_destroy(dialog);
-	return filename;
-}
-
-static void
-open_existing_file(GtkWindow *parent) {
-	Editor *new;
-	GtkSourceBuffer *buffer;
+void
+insert_into_view(GtkWidget *view, char *contents) {
+	GtkTextBuffer *buffer;
 	GtkTextIter iter;
-	char *contents, *filename;
-	gsize length;
-	gboolean status;
-	GError *error = NULL;
 
-	filename = open_file_get_filename(parent);
-
-	if(filename == NULL) {
-		g_fprintf(stderr, "Error: filename is null\n");
-		return;
-	}
-
-	status = g_file_get_contents(filename, &contents, &length, &error);
-	if(!status) {
-		if(error) {
-			g_fprintf(stderr, "Error: %s\n", error->message);
-			g_clear_error(&error);
-		} else
-			g_fprintf(stderr, "Error: can't read file\n");
-		return;
-	}
-
-	/* load the file */
-	if(!(g_utf8_validate(contents, length, NULL))) {
-		g_fprintf(stderr, "Error: file contents were not utf-8\n");
+	buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(view));
+	gtk_widget_set_sensitive(view, FALSE);
+	gtk_source_buffer_begin_not_undoable_action(GTK_SOURCE_BUFFER(buffer));
+	if(contents != NULL) {
+		gtk_text_buffer_set_text(buffer, contents, -1);
 		g_free(contents);
-		return;
-	}
-
-	new = g_slice_new(Editor);
-	buffer = gtk_source_buffer_new(NULL);
-	new->filename = g_strdup(filename);
-	new->view = gtk_source_view_new_with_buffer(GTK_SOURCE_BUFFER(buffer));
-	g_signal_connect(new->view, "key-press-event", G_CALLBACK(on_keypress_view), NULL);
-
-	gtk_widget_set_sensitive(new->view, FALSE);
-	gtk_source_buffer_begin_not_undoable_action(buffer);
-	gtk_text_buffer_set_text(GTK_TEXT_BUFFER(buffer), contents, length);
-	gtk_source_buffer_end_not_undoable_action(buffer);
-	gtk_widget_set_sensitive(new->view, TRUE);
-
-	/* to detect whether file has changed */
-	gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(buffer), FALSE);
+	} else
+		error_msg("Error: contents are null\n");
+	gtk_source_buffer_end_not_undoable_action(GTK_SOURCE_BUFFER(buffer));
+	gtk_widget_set_sensitive(view, TRUE);
 
 	/* move cursor to the beginning */
 	gtk_text_buffer_get_start_iter(GTK_TEXT_BUFFER(buffer), &iter);
 	gtk_text_buffer_place_cursor(GTK_TEXT_BUFFER(buffer), &iter);
 
-	append_new_tab(new);
-	g_free(filename);
-	g_free(contents);
-}
-
-static void
-open_new_file(void) {
-	Editor *new;
-	GtkSourceBuffer *buffer;
-
-	new = g_slice_new(Editor);
-	new->filename = _("New file");
-	buffer = gtk_source_buffer_new(NULL);
-	new->view = gtk_source_view_new_with_buffer(buffer);
-	g_signal_connect(new->view, "key-press-event", G_CALLBACK(on_keypress_view), NULL);
-
 	/* to detect whether file has changed */
-	gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(buffer), FALSE);
-
-	append_new_tab(new);
+	gtk_text_buffer_set_modified(buffer, FALSE);
 }
 
-static gboolean
+gboolean
 on_keypress_view(GtkWidget *widget, GdkEventKey *event) {
 	if((event->state & GDK_CONTROL_MASK) == GDK_CONTROL_MASK) {
 		switch(event->keyval) {
@@ -144,7 +104,7 @@ on_keypress_view(GtkWidget *widget, GdkEventKey *event) {
  * does, but in the opposite order and then we chain up to the grand
  * parent handler, skipping gtk_window_key_press_event.
  */
-static gboolean
+gboolean
 on_keypress_window(GtkWidget *widget, GdkEventKey *event) {
 	GtkWindow *window = GTK_WINDOW(widget);
 	gboolean handled = FALSE;
@@ -158,23 +118,35 @@ on_keypress_window(GtkWidget *widget, GdkEventKey *event) {
 		handled = gtk_window_activate_key(window, event);
 
 	/* we went up all the way, these bindings are set on the window */
+	GtkWidget *scroll, *view;
+	Editor *curr;
+	int index;
+
+	index = gtk_notebook_get_current_page(GTK_NOTEBOOK(tabs));
+	scroll = gtk_notebook_get_nth_page(GTK_NOTEBOOK(tabs), index);
+	view = gtk_bin_get_child(GTK_BIN(scroll));
+	curr = g_object_get_data(G_OBJECT(view), "struct");
+
 	if(!handled && (event->state & GDK_CONTROL_MASK) == GDK_CONTROL_MASK) {
 		switch(event->keyval) {
 			case GDK_KEY_o:
-				/* TODO: detect whether we are in a new or existing document
-				 * If new, we should open inside this tab
-				 * else, open in new tab
-				 */
-				open_existing_file(window); return TRUE; break;
+				if(curr->new)
+					insert_file(window, curr, scroll);
+				else
+					open_file(window, TRUE); //FIXME: segfault when filename is null
+				return TRUE; break;
 			case GDK_KEY_t:
-			case GDK_KEY_n: open_new_file(); return TRUE; break;
+			case GDK_KEY_n: open_file(window, FALSE); return TRUE; break;
 			case GDK_KEY_w: /*close_tab(index);*/ return TRUE; break;
-			case GDK_KEY_s: /*save_file(window, FALSE);*/ return TRUE; break;
-			case GDK_KEY_S: /*save_file(window, TRUE);*/ return TRUE; break;
+			case GDK_KEY_s: save_to_file(window, curr, FALSE); return TRUE; break;
+			case GDK_KEY_S: save_to_file(window, curr, TRUE); return TRUE; break;
 			case GDK_KEY_r: /*reload_file();*/ return TRUE; break;
+			case GDK_KEY_Tab: gtk_notebook_next_page(GTK_NOTEBOOK(tabs)); return TRUE; break;
+			case GDK_KEY_ISO_Left_Tab: gtk_notebook_prev_page(GTK_NOTEBOOK(tabs)); return TRUE; break;
 			default: break;
 		}
 	}
+
 	return handled;
 }
 
@@ -192,7 +164,7 @@ main(int argc, char **argv) {
 	tabs = gtk_notebook_new();
 	gtk_container_add(GTK_CONTAINER(window), tabs);
 
-	open_new_file();
+	open_file(GTK_WINDOW(window), FALSE);
 
 	g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
 	g_signal_connect(window, "key-press-event", G_CALLBACK(on_keypress_window), NULL);
@@ -200,5 +172,6 @@ main(int argc, char **argv) {
 	gtk_widget_show_all(window);
 	gtk_main();
 
+	//TODO: free all remaining objects
 	return 0;
 }
