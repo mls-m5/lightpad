@@ -44,3 +44,8 @@ License
 You should have received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 **Copyright © 2014** Jente Hidskes <hjdskes@gmail.com>
+
+Some code is based on/copied from the TutorialTextEditor. These parts are licensed under the GPLv2 license.
+**Copyright © 2007** Micah Carrick <email@micahcarrick.com>
+
+Another great help at times has been jjacky from the Arch Linux forums - thank you!

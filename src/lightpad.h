@@ -3,12 +3,12 @@
  * lightpad.h
  * Copyright (C) 2014 Jente Hidskes <hjdskes@gmail.com>
  *
- * sedit is free software: you can redistribute it and/or modify it
+ * Lightpad is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
  * Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * sedit is distributed in the hope that it will be useful, but
+ * Lightpad is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
@@ -28,10 +28,12 @@ typedef struct {
 	gboolean new;
 } Editor;
 
-void error_dialog(const gchar *message);
+void error_bar(const gchar *message);
 void append_new_tab(Editor *editor);
-void insert_into_view(GtkWidget *view, char *content);
+void insert_into_view(GtkWidget *view, gchar *content);
+gboolean check_for_save(Editor *editor);
 gboolean on_keypress_view(GtkWidget *widget, GdkEventKey *event);
 gboolean on_keypress_window(GtkWidget *widget, GdkEventKey *event);
+gboolean on_delete_window(GtkWidget *widget, GdkEvent *event);
 
 GtkWidget *tabs;

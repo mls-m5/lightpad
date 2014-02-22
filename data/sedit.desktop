@@ -1,9 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=SEdit
-GenericName=A simple text editor
-GenericName[nl]=Een simpele textbewerker
-Icon=accessories-text-editor
-Terminal=false
-Exec=sedit
-Categories=GNOME;GTK;

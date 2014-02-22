@@ -1,4 +1,4 @@
-PROG    = sedit
+PROG    = lightpad
 
 CC      = gcc
 LIBS    = `pkg-config --cflags --libs gtk+-3.0 gtksourceview-3.0`
@@ -20,7 +20,7 @@ debug: all
 	$(CC) $(LIBS) $(CFLAGS) -c -o $@ $<
 
 $(PROG): $(OBJ)
-	$(CC) -o src/$@ $(OBJ) $(LDFLAGS) $(LIBS)
+	$(CC) -o $@ $(OBJ) $(LDFLAGS) $(LIBS)
 
 install:
 	mkdir -p $(DESTDIR)$(BINPREFIX)

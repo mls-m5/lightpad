@@ -26,24 +26,30 @@
 #include "io.h"
 
 void
-error_dialog(const gchar *message) {
-	GtkWidget *dialog;
+error_bar(const gchar *message) {
+	/*GtkWidget *infobar, *label, *content;*/
 
 	g_fprintf(stderr, message);
 
-	dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
-			GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, message);
+	/*infobar = gtk_info_bar_new();
+	gtk_info_bar_add_button(GTK_INFO_BAR(infobar), _("Ok"), GTK_RESPONSE_OK);
+	gtk_info_bar_set_message_type(GTK_INFO_BAR(infobar), GTK_MESSAGE_ERROR);
+	g_signal_connect(infobar, "response", G_CALLBACK(gtk_widget_destroy), NULL);
 
-	gtk_window_set_title(GTK_WINDOW(dialog), "Error!");
-	gtk_dialog_run(GTK_DIALOG (dialog));
-	gtk_widget_destroy(dialog);
+	label = gtk_label_new(message);
 	g_free((gpointer)message);
+
+	content = gtk_info_bar_get_content_area(GTK_INFO_BAR(infobar));
+	gtk_container_add(GTK_CONTAINER(content), label);
+
+	//pack it somewhere
+	gtk_widget_show_all(infobar); //FIXME: is this necessary?*/
 }
 
 void
 append_new_tab(Editor *editor) {
 	GtkWidget *scroll, *label;
-	char *basename;
+	gchar *basename;
 
 	basename = g_path_get_basename(editor->filename);
 	label = gtk_label_new(basename);
@@ -56,33 +62,64 @@ append_new_tab(Editor *editor) {
 
 	gtk_container_add(GTK_CONTAINER(scroll), editor->view);
 
-	if(gtk_notebook_append_page(GTK_NOTEBOOK(tabs), scroll, label) < 0)
-		error_dialog("Error: failed to add new tab\n");
+	if(gtk_notebook_append_page(GTK_NOTEBOOK(tabs), scroll, label) < 0) {
+		error_bar("Error: failed to add new tab\n");
+		g_object_unref(scroll);
+		//FIXME: remove view?
+		return;
+	}
+
+	/* Store the structure inside the GtkScrolledWindow.
+	 * This way, we can use GtkNotebook to supply the
+	 * correct Editor struct instead of keeping an
+	 * additional list ourselves.
+	 */
+	g_object_set_data(G_OBJECT(scroll), "struct", editor);
 	gtk_widget_show_all(tabs); //FIXME: why is this necessary?
 }
 
 void
-insert_into_view(GtkWidget *view, char *contents) {
+insert_into_view(GtkWidget *view, gchar *contents) {
 	GtkTextBuffer *buffer;
 	GtkTextIter iter;
 
 	buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(view));
 	gtk_widget_set_sensitive(view, FALSE);
 	gtk_source_buffer_begin_not_undoable_action(GTK_SOURCE_BUFFER(buffer));
-	if(contents != NULL) {
+	if(contents != NULL)
 		gtk_text_buffer_set_text(buffer, contents, -1);
-		g_free(contents);
-	} else
-		error_dialog("Error: contents are null\n");
+	else
+		error_bar("Error: can not insert file into the buffer! The file contents are null\n");
 	gtk_source_buffer_end_not_undoable_action(GTK_SOURCE_BUFFER(buffer));
 	gtk_widget_set_sensitive(view, TRUE);
 
 	/* move cursor to the beginning */
-	gtk_text_buffer_get_start_iter(GTK_TEXT_BUFFER(buffer), &iter);
-	gtk_text_buffer_place_cursor(GTK_TEXT_BUFFER(buffer), &iter);
+	gtk_text_buffer_get_start_iter(buffer, &iter);
+	gtk_text_buffer_place_cursor(buffer, &iter);
 
 	/* to detect whether file has changed */
 	gtk_text_buffer_set_modified(buffer, FALSE);
+}
+
+gboolean
+check_for_save(Editor *editor) {
+	gboolean save = FALSE;
+	GtkTextBuffer *buffer;
+
+	buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(editor->view));
+
+	if(gtk_text_buffer_get_modified(buffer) == TRUE) {
+		GtkWidget *dialog;
+
+		dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+				GTK_MESSAGE_QUESTION, GTK_BUTTONS_YES_NO, _("Do you want to save the changes you have made?"));
+		//_("Save changes?")
+		if(gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_YES)
+			save = TRUE;
+		gtk_widget_destroy(dialog);      
+	}     
+
+	return save;
 }
 
 gboolean
@@ -124,22 +161,21 @@ on_keypress_window(GtkWidget *widget, GdkEventKey *event) {
 		handled = gtk_window_activate_key(window, event);
 
 	/* we went up all the way, these bindings are set on the window */
-	GtkWidget *scroll, *view;
+	GtkWidget *scroll;
 	Editor *curr;
 	int index;
 
 	index = gtk_notebook_get_current_page(GTK_NOTEBOOK(tabs));
 	scroll = gtk_notebook_get_nth_page(GTK_NOTEBOOK(tabs), index);
-	view = gtk_bin_get_child(GTK_BIN(scroll));
-	curr = g_object_get_data(G_OBJECT(view), "struct");
+	curr = g_object_get_data(G_OBJECT(scroll), "struct");
 
 	if(!handled && (event->state & GDK_CONTROL_MASK) == GDK_CONTROL_MASK) {
 		switch(event->keyval) {
 			case GDK_KEY_o:
-				if(curr->new)
+				if(curr->new) {
+					if(check_for_save(curr) == TRUE) save_to_file(window, curr, TRUE);
 					insert_file(window, curr, scroll);
-				else
-					open_file(window, TRUE); //FIXME: segfault when filename is null
+				} else open_file(window, TRUE);
 				return TRUE; break;
 			case GDK_KEY_t:
 			case GDK_KEY_n: open_file(window, FALSE); return TRUE; break;
@@ -156,6 +192,43 @@ on_keypress_window(GtkWidget *widget, GdkEventKey *event) {
 
 	return handled;
 }
+
+/*
+ * When the window is requested to be closed, we need to check if they have 
+ * unsaved work. We use this callback to prompt the user to save their work before
+ * they exit the application. From the "delete-event" signal, we can choose to
+ * effectively cancel the close based on the value we return.
+*/
+gboolean 
+on_delete_window(GtkWidget *widget, GdkEvent *event) {
+	int pages;
+	GtkWidget *scroll;
+	Editor *curr;
+
+	pages = gtk_notebook_get_n_pages(GTK_NOTEBOOK(tabs));
+	for(int i = 0; i < pages; i++) {
+		scroll = gtk_notebook_get_nth_page(GTK_NOTEBOOK(tabs), i);
+		curr = g_object_get_data(G_OBJECT(scroll), "struct");
+		if(check_for_save(curr) == TRUE)
+			save_to_file(GTK_WINDOW(widget), curr, TRUE);
+	}
+	return FALSE; /* propogate event */
+}
+
+/*void
+cleanup() {
+	int pages;
+	//GtkWidget *scroll;
+	//Editor *curr;
+
+	pages = gtk_notebook_get_n_pages(GTK_NOTEBOOK(tabs));
+	for(int i = 0; i < pages; i++) {
+		//scroll = gtk_notebook_get_nth_page(GTK_NOTEBOOK(tabs), i);
+		//curr = g_object_get_data(G_OBJECT(scroll), "struct");
+		//TODO: free
+		g_fprintf(stdout, "Cleanup\n");
+	}
+}*/
 
 int
 main(int argc, char **argv) {
@@ -174,11 +247,12 @@ main(int argc, char **argv) {
 	open_file(GTK_WINDOW(window), FALSE);
 
 	g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
+	g_signal_connect(window, "delete-event", G_CALLBACK(on_delete_window), NULL);
 	g_signal_connect(window, "key-press-event", G_CALLBACK(on_keypress_window), NULL);
 
 	gtk_widget_show_all(window);
 	gtk_main();
 
-	//TODO: free all remaining objects
+	//cleanup();
 	return 0;
 }
