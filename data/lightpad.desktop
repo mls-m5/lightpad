@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Lightpad
+GenericName=A simple text editor, based on keyboard shortcuts
+GenericName[nl]=Een simpele textbewerker, gebaseerd op toetsencombinaties
+Icon=accessories-text-editor
+Terminal=false
+Exec=lightpad
+Categories=GNOME;GTK;
