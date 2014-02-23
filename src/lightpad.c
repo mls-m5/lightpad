@@ -73,11 +73,11 @@ error_bar(const gchar *message) {
 }
 
 void
-append_new_tab(Editor *editor) {
+append_new_tab(Document *doc) {
 	GtkWidget *scroll, *label;
 	gchar *basename;
 
-	basename = g_path_get_basename(editor->filename);
+	basename = g_path_get_basename(doc->filename);
 	label = gtk_label_new(basename);
 	g_free(basename);
 
@@ -86,7 +86,7 @@ append_new_tab(Editor *editor) {
 	gtk_scrolled_window_set_shadow_type(GTK_SCROLLED_WINDOW(scroll), GTK_SHADOW_NONE);
 	gtk_widget_set_vexpand(scroll, TRUE);
 
-	gtk_container_add(GTK_CONTAINER(scroll), editor->view);
+	gtk_container_add(GTK_CONTAINER(scroll), doc->view);
 
 	if(gtk_notebook_append_page(GTK_NOTEBOOK(lightpad->tabs), scroll, label) < 0) {
 		error_bar("Error: failed to add new tab\n");
@@ -97,10 +97,10 @@ append_new_tab(Editor *editor) {
 
 	/* Store the structure inside the GtkScrolledWindow.
 	 * This way, we can use GtkNotebook to supply the
-	 * correct Editor struct instead of keeping an
+	 * correct Document struct instead of keeping an
 	 * additional list ourselves.
 	 */
-	g_object_set_data(G_OBJECT(scroll), "struct", editor);
+	g_object_set_data(G_OBJECT(scroll), "struct", doc);
 	gtk_widget_show_all(lightpad->tabs); //FIXME: why is this necessary?
 }
 
@@ -128,11 +128,11 @@ insert_into_view(GtkWidget *view, gchar *contents) {
 }
 
 gboolean
-check_for_save(Editor *editor) {
+check_for_save(Document *doc) {
 	gboolean save = FALSE;
 	GtkTextBuffer *buffer;
 
-	buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(editor->view));
+	buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(doc->view));
 
 	if(gtk_text_buffer_get_modified(buffer) == TRUE) {
 		GtkWidget *dialog;
@@ -149,10 +149,10 @@ check_for_save(Editor *editor) {
 }
 
 void
-reset_default_status(Editor *editor) {
+reset_default_status(Document *doc) {
 	gchar *status, *basename;
 
-	basename = g_path_get_basename(editor->filename);
+	basename = g_path_get_basename(doc->filename);
 	status = g_strdup_printf(_("File: %s"), basename);
 	gtk_statusbar_pop(GTK_STATUSBAR(lightpad->status), lightpad->id);
 	gtk_statusbar_push(GTK_STATUSBAR(lightpad->status), lightpad->id, status);
@@ -200,7 +200,7 @@ on_keypress_window(GtkWidget *widget, GdkEventKey *event) {
 
 	/* we went up all the way, these bindings are set on the window */
 	GtkWidget *scroll;
-	Editor *curr;
+	Document *curr;
 	int index;
 
 	index = gtk_notebook_get_current_page(GTK_NOTEBOOK(lightpad->tabs));
@@ -241,7 +241,7 @@ gboolean
 on_delete_window(GtkWidget *widget, GdkEvent *event) {
 	int pages;
 	GtkWidget *scroll;
-	Editor *curr;
+	Document *curr;
 
 	pages = gtk_notebook_get_n_pages(GTK_NOTEBOOK(lightpad->tabs));
 	for(int i = 0; i < pages; i++) {
@@ -257,7 +257,7 @@ on_delete_window(GtkWidget *widget, GdkEvent *event) {
 cleanup() {
 	int pages;
 	//GtkWidget *scroll;
-	//Editor *curr;
+	//Document *curr;
 
 	pages = gtk_notebook_get_n_pages(GTK_NOTEBOOK(lightpad->tabs));
 	for(int i = 0; i < pages; i++) {

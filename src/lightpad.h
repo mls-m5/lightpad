@@ -26,7 +26,7 @@ typedef struct {
 	GtkWidget *view;
 	char *filename;
 	gboolean new;
-} Editor;
+} Document;
 
 typedef struct {
 	GtkWidget *window;
@@ -36,10 +36,10 @@ typedef struct {
 } Window;
 
 void error_bar(const gchar *message);
-void append_new_tab(Editor *editor);
+void append_new_tab(Document *doc);
 void insert_into_view(GtkWidget *view, gchar *content);
-gboolean check_for_save(Editor *editor);
-void reset_default_status(Editor *editor);
+gboolean check_for_save(Document *doc);
+void reset_default_status(Document *doc);
 gboolean on_keypress_view(GtkWidget *widget, GdkEventKey *event);
 gboolean on_keypress_window(GtkWidget *widget, GdkEventKey *event);
 gboolean on_delete_window(GtkWidget *widget, GdkEvent *event);

@@ -31,7 +31,7 @@
 #define STYLE_SCHEME       "oblivion"
 
 void
-save_to_file(Editor *editor, gboolean saveas) {
+save_to_file(Document *doc, gboolean saveas) {
 	GtkWidget *dialog;
 	GtkTextBuffer *buffer;
 	GtkTextIter start, end;
@@ -39,7 +39,7 @@ save_to_file(Editor *editor, gboolean saveas) {
 	gboolean result = FALSE;
 	GError *error = NULL;
 
-	if(saveas || editor->new) {
+	if(saveas || doc->new) {
 		dialog = gtk_file_chooser_dialog_new(_("Save File"), GTK_WINDOW(lightpad->window),
 				GTK_FILE_CHOOSER_ACTION_SAVE, _("_Cancel"), GTK_RESPONSE_CANCEL,
 				_("_Save"), GTK_RESPONSE_ACCEPT, NULL);
@@ -47,7 +47,7 @@ save_to_file(Editor *editor, gboolean saveas) {
 		gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dialog), TRUE);
 
 		if(saveas)
-			gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(dialog), editor->filename);
+			gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(dialog), doc->filename);
 		else
 			gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dialog), _("Untitled document"));
 
@@ -57,30 +57,30 @@ save_to_file(Editor *editor, gboolean saveas) {
 		if(path == NULL)
 			return;
 
-		if(editor->filename != NULL)
-			g_free(editor->filename);
-		editor->filename = g_strdup(path);
+		if(doc->filename != NULL)
+			g_free(doc->filename);
+		doc->filename = g_strdup(path);
 	} else
-		path = editor->filename;	
+		path = doc->filename;
 
 	status = g_strdup_printf("Saving %s...", path);
 	gtk_statusbar_push(GTK_STATUSBAR(lightpad->status), lightpad->id, status);
 	g_free(status);
 	while(gtk_events_pending()) gtk_main_iteration();
 
-	gtk_widget_set_sensitive(editor->view, FALSE);
-	buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(editor->view));
+	gtk_widget_set_sensitive(doc->view, FALSE);
+	buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(doc->view));
 	gtk_text_buffer_get_start_iter(GTK_TEXT_BUFFER(buffer), &start);
 	gtk_text_buffer_get_end_iter(GTK_TEXT_BUFFER(buffer), &end);
 	contents = gtk_text_buffer_get_text(GTK_TEXT_BUFFER(buffer), &start, &end, FALSE);       
 	gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(buffer), FALSE);
-	gtk_widget_set_sensitive(editor->view, TRUE);
+	gtk_widget_set_sensitive(doc->view, TRUE);
 
 	result = g_file_set_contents(path, contents, -1, &error);
 	g_free(contents);
 	g_free(path);
 	gtk_statusbar_pop(GTK_STATUSBAR(lightpad->status), lightpad->id);
-	reset_default_status(editor);
+	reset_default_status(doc);
 	if(!result) {
 		if(error) {
 			error_bar(error->message);
@@ -107,7 +107,7 @@ open_get_filename(void) {
 
 void
 open_file(gboolean existing) {
-	Editor *new;
+	Document *new;
 	GtkSourceBuffer *buffer;
 	gchar *filename = NULL, *status;
 	gsize length;
@@ -130,7 +130,7 @@ open_file(gboolean existing) {
 	g_free(status);
 	while(gtk_events_pending()) gtk_main_iteration();
 
-	new = g_slice_new0(Editor);
+	new = g_slice_new0(Document);
 	buffer = gtk_source_buffer_new(NULL);
 	new->view = gtk_source_view_new_with_buffer(buffer);
 	g_signal_connect(new->view, "key-press-event", G_CALLBACK(on_keypress_view), NULL);
@@ -168,7 +168,7 @@ open_file(gboolean existing) {
 
 	/* syntax, theme, etc */
 	GtkSourceStyleScheme *scheme;
-	
+
 	gtk_source_buffer_set_highlight_syntax(buffer, HIGHLIGHT);
 	gtk_source_buffer_set_highlight_matching_brackets(buffer, HIGHLIGHT_BRACKETS);
 	scheme = get_style_scheme(STYLE_SCHEME);
@@ -181,7 +181,7 @@ open_file(gboolean existing) {
 }
 
 void
-insert_file(Editor *editor, GtkWidget *scroll) {
+insert_file(Document *doc, GtkWidget *scroll) {
 	gchar *filename = NULL, *contents = NULL, *basename;
 	gsize length;
 	gboolean status;
@@ -212,15 +212,15 @@ insert_file(Editor *editor, GtkWidget *scroll) {
 		return;
 	}
 
-	insert_into_view(editor->view, contents);
+	insert_into_view(doc->view, contents);
 
-	editor->new = FALSE;
-	if(editor->filename != NULL)
-		g_free(editor->filename);
-	editor->filename = g_strdup(filename);
+	doc->new = FALSE;
+	if(doc->filename != NULL)
+		g_free(doc->filename);
+	doc->filename = g_strdup(filename);
 	basename = g_path_get_basename(filename);
 	gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(lightpad->tabs), scroll, basename);
-	reset_default_status(editor);
+	reset_default_status(doc);
 	g_free(basename);
 	g_free(filename);
 	g_free(contents);

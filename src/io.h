@@ -17,7 +17,7 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-void save_to_file(Editor *editor, gboolean saveas);
+void save_to_file(Document *doc, gboolean saveas);
 gchar *open_get_filename(void);
 void open_file(gboolean existing);
-void insert_file(Editor *editor, GtkWidget *scroll);
+void insert_file(Document *doc, GtkWidget *scroll);
