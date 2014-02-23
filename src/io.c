@@ -23,7 +23,12 @@
 #include <gtksourceview/gtksource.h>
 
 #include "lightpad.h"
+#include "editor.h"
 #include "io.h"
+
+#define HIGHLIGHT          TRUE
+#define HIGHLIGHT_BRACKETS TRUE
+#define STYLE_SCHEME       "oblivion"
 
 void
 save_to_file(Editor *editor, gboolean saveas) {
@@ -160,6 +165,15 @@ open_file(gboolean existing) {
 		new->filename = g_strdup(_("New file"));
 		new->new = TRUE;
 	}
+
+	/* syntax, theme, etc */
+	GtkSourceStyleScheme *scheme;
+	
+	gtk_source_buffer_set_highlight_syntax(buffer, HIGHLIGHT);
+	gtk_source_buffer_set_highlight_matching_brackets(buffer, HIGHLIGHT_BRACKETS);
+	scheme = get_style_scheme(STYLE_SCHEME);
+	if(scheme != NULL)
+		gtk_source_buffer_set_style_scheme(buffer, scheme);
 
 	append_new_tab(new);
 	gtk_statusbar_pop(GTK_STATUSBAR(lightpad->status), lightpad->id);
