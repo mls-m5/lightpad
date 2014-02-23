@@ -17,7 +17,7 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-void save_to_file(GtkWindow *parent, Editor *editor, gboolean saveas);
-gchar *open_get_filename(GtkWindow *parent);
-void open_file(GtkWindow *parent, gboolean existing);
-void insert_file(GtkWindow *parent, Editor *editor, GtkWidget *scroll);
+void save_to_file(Editor *editor, gboolean saveas);
+gchar *open_get_filename(void);
+void open_file(gboolean existing);
+void insert_file(Editor *editor, GtkWidget *scroll);

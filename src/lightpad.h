@@ -28,12 +28,20 @@ typedef struct {
 	gboolean new;
 } Editor;
 
+typedef struct {
+	GtkWidget *window;
+	GtkWidget *tabs;
+	GtkWidget *status;
+	guint id;
+} Window;
+
 void error_bar(const gchar *message);
 void append_new_tab(Editor *editor);
 void insert_into_view(GtkWidget *view, gchar *content);
 gboolean check_for_save(Editor *editor);
+void reset_default_status(Editor *editor);
 gboolean on_keypress_view(GtkWidget *widget, GdkEventKey *event);
 gboolean on_keypress_window(GtkWidget *widget, GdkEventKey *event);
 gboolean on_delete_window(GtkWidget *widget, GdkEvent *event);
 
-GtkWidget *tabs;
+Window *lightpad;

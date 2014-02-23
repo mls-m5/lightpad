@@ -25,6 +25,32 @@
 #include "lightpad.h"
 #include "io.h"
 
+/*
+ * TODO:
+ *   detect file type
+ *   expand statusbar
+       buttons to change settings
+         settings
+           syntax highlighting
+           tab size
+       row number
+       colom number
+     configuration à la gedit?
+       font
+       colorscheme
+       show rownumbers
+       show right border
+       linebreak
+       dont split words on two rows
+       highlight current line
+       highlight matching brackets
+       tabsize
+       spaces instead of tabs
+       automatic indentation
+       backup copy
+       auto-save every n minutes
+ */
+
 void
 error_bar(const gchar *message) {
 	/*GtkWidget *infobar, *label, *content;*/
@@ -62,7 +88,7 @@ append_new_tab(Editor *editor) {
 
 	gtk_container_add(GTK_CONTAINER(scroll), editor->view);
 
-	if(gtk_notebook_append_page(GTK_NOTEBOOK(tabs), scroll, label) < 0) {
+	if(gtk_notebook_append_page(GTK_NOTEBOOK(lightpad->tabs), scroll, label) < 0) {
 		error_bar("Error: failed to add new tab\n");
 		g_object_unref(scroll);
 		//FIXME: remove view?
@@ -75,7 +101,7 @@ append_new_tab(Editor *editor) {
 	 * additional list ourselves.
 	 */
 	g_object_set_data(G_OBJECT(scroll), "struct", editor);
-	gtk_widget_show_all(tabs); //FIXME: why is this necessary?
+	gtk_widget_show_all(lightpad->tabs); //FIXME: why is this necessary?
 }
 
 void
@@ -111,15 +137,27 @@ check_for_save(Editor *editor) {
 	if(gtk_text_buffer_get_modified(buffer) == TRUE) {
 		GtkWidget *dialog;
 
-		dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+		dialog = gtk_message_dialog_new(GTK_WINDOW(lightpad->window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
 				GTK_MESSAGE_QUESTION, GTK_BUTTONS_YES_NO, _("Do you want to save the changes you have made?"));
-		//_("Save changes?")
+		gtk_window_set_title(GTK_WINDOW(dialog), _("Save changes?"));
 		if(gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_YES)
 			save = TRUE;
 		gtk_widget_destroy(dialog);      
 	}     
 
 	return save;
+}
+
+void
+reset_default_status(Editor *editor) {
+	gchar *status, *basename;
+
+	basename = g_path_get_basename(editor->filename);
+	status = g_strdup_printf(_("File: %s"), basename);
+	gtk_statusbar_pop(GTK_STATUSBAR(lightpad->status), lightpad->id);
+	gtk_statusbar_push(GTK_STATUSBAR(lightpad->status), lightpad->id, status);
+	g_free(basename);
+	g_free(status);
 }
 
 gboolean
@@ -165,27 +203,27 @@ on_keypress_window(GtkWidget *widget, GdkEventKey *event) {
 	Editor *curr;
 	int index;
 
-	index = gtk_notebook_get_current_page(GTK_NOTEBOOK(tabs));
-	scroll = gtk_notebook_get_nth_page(GTK_NOTEBOOK(tabs), index);
+	index = gtk_notebook_get_current_page(GTK_NOTEBOOK(lightpad->tabs));
+	scroll = gtk_notebook_get_nth_page(GTK_NOTEBOOK(lightpad->tabs), index);
 	curr = g_object_get_data(G_OBJECT(scroll), "struct");
 
 	if(!handled && (event->state & GDK_CONTROL_MASK) == GDK_CONTROL_MASK) {
 		switch(event->keyval) {
 			case GDK_KEY_o:
 				if(curr->new) {
-					if(check_for_save(curr) == TRUE) save_to_file(window, curr, TRUE);
-					insert_file(window, curr, scroll);
-				} else open_file(window, TRUE);
+					if(check_for_save(curr) == TRUE) save_to_file(curr, TRUE);
+					insert_file(curr, scroll);
+				} else open_file(TRUE);
 				return TRUE; break;
 			case GDK_KEY_t:
-			case GDK_KEY_n: open_file(window, FALSE); return TRUE; break;
+			case GDK_KEY_n: open_file(FALSE); return TRUE; break;
 			case GDK_KEY_w: /*close_tab(curr, index)*/ g_fprintf(stdout, "Close tab\n"); return TRUE; break;
-			case GDK_KEY_s: save_to_file(window, curr, FALSE); return TRUE; break;
-			case GDK_KEY_S: save_to_file(window, curr, TRUE); return TRUE; break;
+			case GDK_KEY_s: save_to_file(curr, FALSE); return TRUE; break;
+			case GDK_KEY_S: save_to_file(curr, TRUE); return TRUE; break;
 			case GDK_KEY_r: /*reload_file();*/ g_fprintf(stdout, "Reload file\n"); return TRUE; break;
 			case GDK_KEY_q: gtk_main_quit(); return TRUE; break;
-			case GDK_KEY_Tab: gtk_notebook_next_page(GTK_NOTEBOOK(tabs)); return TRUE; break;
-			case GDK_KEY_ISO_Left_Tab: gtk_notebook_prev_page(GTK_NOTEBOOK(tabs)); return TRUE; break;
+			case GDK_KEY_Tab: gtk_notebook_next_page(GTK_NOTEBOOK(lightpad->tabs)); return TRUE; break;
+			case GDK_KEY_ISO_Left_Tab: gtk_notebook_prev_page(GTK_NOTEBOOK(lightpad->tabs)); return TRUE; break;
 			default: break;
 		}
 	}
@@ -205,12 +243,12 @@ on_delete_window(GtkWidget *widget, GdkEvent *event) {
 	GtkWidget *scroll;
 	Editor *curr;
 
-	pages = gtk_notebook_get_n_pages(GTK_NOTEBOOK(tabs));
+	pages = gtk_notebook_get_n_pages(GTK_NOTEBOOK(lightpad->tabs));
 	for(int i = 0; i < pages; i++) {
-		scroll = gtk_notebook_get_nth_page(GTK_NOTEBOOK(tabs), i);
+		scroll = gtk_notebook_get_nth_page(GTK_NOTEBOOK(lightpad->tabs), i);
 		curr = g_object_get_data(G_OBJECT(scroll), "struct");
 		if(check_for_save(curr) == TRUE)
-			save_to_file(GTK_WINDOW(widget), curr, TRUE);
+			save_to_file(curr, TRUE);
 	}
 	return FALSE; /* propogate event */
 }
@@ -221,36 +259,47 @@ cleanup() {
 	//GtkWidget *scroll;
 	//Editor *curr;
 
-	pages = gtk_notebook_get_n_pages(GTK_NOTEBOOK(tabs));
+	pages = gtk_notebook_get_n_pages(GTK_NOTEBOOK(lightpad->tabs));
 	for(int i = 0; i < pages; i++) {
-		//scroll = gtk_notebook_get_nth_page(GTK_NOTEBOOK(tabs), i);
+		//scroll = gtk_notebook_get_nth_page(GTK_NOTEBOOK(lightpad->tabs), i);
 		//curr = g_object_get_data(G_OBJECT(scroll), "struct");
 		//TODO: free
 		g_fprintf(stdout, "Cleanup\n");
 	}
+	g_slice_free(Window, lightpad);
 }*/
 
 int
 main(int argc, char **argv) {
-	GtkWidget *window;
+	GtkWidget *vbox;
+
+	lightpad = g_slice_new0(Window);
 
 	gtk_init(&argc, &argv);
 
-	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	gtk_window_set_title(GTK_WINDOW(window), "Lightpad");
+	lightpad->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	gtk_window_set_title(GTK_WINDOW(lightpad->window), "Lightpad");
 	gtk_window_set_default_icon_name("accessories-text-editor");
-	gtk_container_set_border_width(GTK_CONTAINER(window), 2);
+	gtk_container_set_border_width(GTK_CONTAINER(lightpad->window), 2);
 
-	tabs = gtk_notebook_new();
-	gtk_container_add(GTK_CONTAINER(window), tabs);
+	vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+	gtk_container_add(GTK_CONTAINER(lightpad->window), vbox);
 
-	open_file(GTK_WINDOW(window), FALSE);
+	lightpad->tabs = gtk_notebook_new();
+	gtk_box_pack_start(GTK_BOX(vbox), lightpad->tabs, TRUE, TRUE, 0);
 
-	g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
-	g_signal_connect(window, "delete-event", G_CALLBACK(on_delete_window), NULL);
-	g_signal_connect(window, "key-press-event", G_CALLBACK(on_keypress_window), NULL);
+	lightpad->status = gtk_statusbar_new();
+	lightpad->id = gtk_statusbar_get_context_id(GTK_STATUSBAR(lightpad->status),
+			"Lightpad text editor");
+	gtk_box_pack_start(GTK_BOX(vbox), lightpad->status, FALSE, TRUE, 0);
 
-	gtk_widget_show_all(window);
+	open_file(FALSE);
+
+	g_signal_connect(lightpad->window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
+	g_signal_connect(lightpad->window, "delete-event", G_CALLBACK(on_delete_window), NULL);
+	g_signal_connect(lightpad->window, "key-press-event", G_CALLBACK(on_keypress_window), NULL);
+
+	gtk_widget_show_all(lightpad->window);
 	gtk_main();
 
 	//cleanup();

@@ -7,7 +7,7 @@ CFLAGS  = -std=c99 -Wall -Wextra
 PREFIX   ?= /usr/local
 BINPREFIX = $(PREFIX)/bin
 
-SRC = src/${PROG}.c src/io.c
+SRC = src/${PROG}.c src/io.c src/editor.c
 OBJ = $(SRC:.c=.o)
 
 all: CFLAGS += -Os
