@@ -23,12 +23,11 @@
 #include <gtksourceview/gtksource.h>
 
 #include "lightpad.h"
-#include "editor.h"
+#include "callbacks.h"
 #include "io.h"
 
 /*
  * TODO:
- *   detect file type
  *   expand statusbar
        buttons to change settings
          settings
@@ -103,6 +102,21 @@ append_new_tab(Document *doc) {
 	 */
 	g_object_set_data(G_OBJECT(scroll), "struct", doc);
 	gtk_widget_show_all(lightpad->tabs); //FIXME: why is this necessary?
+	gtk_notebook_set_current_page(GTK_NOTEBOOK(lightpad->tabs), -1);
+}
+
+void
+update_tab_label(Document *doc) {
+	GtkWidget *scroll;
+	gchar *basename;
+	int index;
+
+	index = gtk_notebook_get_current_page(GTK_NOTEBOOK(lightpad->tabs));
+	scroll = gtk_notebook_get_nth_page(GTK_NOTEBOOK(lightpad->tabs), index);
+
+	basename = g_path_get_basename(doc->filename);
+	gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(lightpad->tabs), scroll, basename);
+	g_free(basename);
 }
 
 void
@@ -163,99 +177,6 @@ reset_default_status(Document *doc) {
 	g_free(status);
 }
 
-gboolean
-on_keypress_view(GtkWidget *widget, GdkEventKey *event) {
-	if((event->state & GDK_CONTROL_MASK) == GDK_CONTROL_MASK) {
-		switch(event->keyval) {
-			case GDK_KEY_m: g_fprintf(stdout, "Mark\n"); return TRUE; break;
-			case GDK_KEY_f: g_fprintf(stdout, "Search\n"); return TRUE; break;
-			case GDK_KEY_g: g_fprintf(stdout, "Search next\n"); return TRUE; break;
-			case GDK_KEY_G: g_fprintf(stdout, "Search previous\n"); return TRUE; break;
-			case GDK_KEY_h: g_fprintf(stdout, "Replace\n"); return TRUE; break;
-			case GDK_KEY_i: g_fprintf(stdout, "Go to line\n"); return TRUE; break;
-			case GDK_KEY_d: g_fprintf(stdout, "Delete line\n"); return TRUE; break;
-			case GDK_KEY_k: g_fprintf(stdout, "Clear search highlight\n"); return TRUE; break;
-			default: return FALSE; break;
-		}
-	}
-	return FALSE;
-}
-
-/*
- * GtkWindow catches keybindings _before_ passing them to
- * the focused widget. 
- * Here we override GtkWindow's handler to do the same things that it
- * does, but in the opposite order and then we chain up to the grand
- * parent handler, skipping gtk_window_key_press_event.
- */
-gboolean
-on_keypress_window(GtkWidget *widget, GdkEventKey *event) {
-	GtkWindow *window = GTK_WINDOW(widget);
-	gboolean handled = FALSE;
-
-	/* handle focus widget key events */
-	if(!handled)
-		handled = gtk_window_propagate_key_event(window, event);
-
-	/* handle mnemonics and accelerators */
-	if(!handled)
-		handled = gtk_window_activate_key(window, event);
-
-	/* we went up all the way, these bindings are set on the window */
-	GtkWidget *scroll;
-	Document *curr;
-	int index;
-
-	index = gtk_notebook_get_current_page(GTK_NOTEBOOK(lightpad->tabs));
-	scroll = gtk_notebook_get_nth_page(GTK_NOTEBOOK(lightpad->tabs), index);
-	curr = g_object_get_data(G_OBJECT(scroll), "struct");
-
-	if(!handled && (event->state & GDK_CONTROL_MASK) == GDK_CONTROL_MASK) {
-		switch(event->keyval) {
-			case GDK_KEY_o:
-				if(curr->new) {
-					if(check_for_save(curr) == TRUE) save_to_file(curr, TRUE);
-					insert_into_view(curr, scroll);
-				} else new_view(TRUE);
-				return TRUE; break;
-			case GDK_KEY_t:
-			case GDK_KEY_n: new_view(FALSE); return TRUE; break;
-			case GDK_KEY_w: /*close_tab(curr, index)*/ g_fprintf(stdout, "Close tab\n"); return TRUE; break;
-			case GDK_KEY_s: save_to_file(curr, FALSE); return TRUE; break;
-			case GDK_KEY_S: save_to_file(curr, TRUE); return TRUE; break;
-			case GDK_KEY_r: /*reload_file();*/ g_fprintf(stdout, "Reload file\n"); return TRUE; break;
-			case GDK_KEY_q: gtk_main_quit(); return TRUE; break;
-			case GDK_KEY_Tab: gtk_notebook_next_page(GTK_NOTEBOOK(lightpad->tabs)); return TRUE; break;
-			case GDK_KEY_ISO_Left_Tab: gtk_notebook_prev_page(GTK_NOTEBOOK(lightpad->tabs)); return TRUE; break;
-			default: break;
-		}
-	}
-
-	return handled;
-}
-
-/*
- * When the window is requested to be closed, we need to check if they have 
- * unsaved work. We use this callback to prompt the user to save their work before
- * they exit the application. From the "delete-event" signal, we can choose to
- * effectively cancel the close based on the value we return.
-*/
-gboolean 
-on_delete_window(GtkWidget *widget, GdkEvent *event) {
-	int pages;
-	GtkWidget *scroll;
-	Document *curr;
-
-	pages = gtk_notebook_get_n_pages(GTK_NOTEBOOK(lightpad->tabs));
-	for(int i = 0; i < pages; i++) {
-		scroll = gtk_notebook_get_nth_page(GTK_NOTEBOOK(lightpad->tabs), i);
-		curr = g_object_get_data(G_OBJECT(scroll), "struct");
-		if(check_for_save(curr) == TRUE)
-			save_to_file(curr, TRUE);
-	}
-	return FALSE; /* propogate event */
-}
-
 /*void
 cleanup() {
 	int pages;
@@ -301,7 +222,7 @@ main(int argc, char **argv) {
 	g_signal_connect(lightpad->window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
 	g_signal_connect(lightpad->window, "delete-event", G_CALLBACK(on_delete_window), NULL);
 	g_signal_connect(lightpad->window, "key-press-event", G_CALLBACK(on_keypress_window), NULL);
-	//g_signal_connect(lightpad->tabs, "switch-page", G_CALLBACK(reset_default_status), NULL);
+	g_signal_connect(lightpad->tabs, "switch-page", G_CALLBACK(on_page_switch), NULL);
 
 	gtk_widget_show_all(lightpad->window);
 	gtk_main();

@@ -2,12 +2,12 @@ PROG    = lightpad
 
 CC      = gcc
 LIBS    = `pkg-config --cflags --libs gtk+-3.0 gtksourceview-3.0`
-CFLAGS  = -std=c99 -Wall -Wextra
+CFLAGS  = -std=c99 -Wall -Wextra -Wno-unused-parameter
 
 PREFIX   ?= /usr/local
 BINPREFIX = $(PREFIX)/bin
 
-SRC = src/${PROG}.c src/io.c src/editor.c
+SRC = src/${PROG}.c src/io.c src/editor.c src/callbacks.c
 OBJ = $(SRC:.c=.o)
 
 all: CFLAGS += -Os

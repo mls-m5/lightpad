@@ -18,20 +18,20 @@
  */
 
 #include <glib/gi18n.h>
-#include <glib/gprintf.h>
 #include <gtk/gtk.h>
-#include <gtksourceview/gtksource.h>
 
 #include "lightpad.h"
 #include "editor.h"
-#include "io.h"
 
 void
 save_to_file(Document *doc, gboolean saveas) {
 	GtkWidget *dialog;
 	GtkTextBuffer *buffer;
 	GtkTextIter start, end;
-	gchar *path = NULL, *contents, *status;
+	gchar *path = NULL;
+	gchar *contents;
+	gchar *status;
+	gchar *basename;
 	gboolean result = FALSE;
 	GError *error = NULL;
 
@@ -55,7 +55,11 @@ save_to_file(Document *doc, gboolean saveas) {
 
 		if(doc->filename != NULL)
 			g_free(doc->filename);
-		doc->filename = g_strdup(path);
+		basename = g_path_get_basename(path);
+		doc->filename = g_strdup(basename);
+		g_free(basename);
+		set_language(doc);
+		update_tab_label(doc);
 	} else
 		path = doc->filename;
 
@@ -142,7 +146,7 @@ new_view(gboolean open_file) {
 		}
 
 		if(!(g_utf8_validate(contents, length, NULL))) {
-			g_fprintf(stderr, "Error: file contents were not utf-8\n");
+			error_bar("Error: file contents were not utf-8\n");
 			g_free(contents);
 			//g_free(filename);
 			return;
@@ -158,10 +162,9 @@ new_view(gboolean open_file) {
 }
 
 void
-insert_into_view(Document *doc, GtkWidget *scroll) {
+insert_into_view(Document *doc) {
 	gchar *filename = NULL;
 	gchar *contents = NULL;
-	gchar *basename;
 	gchar *status;
 	gsize length;
 	gboolean result;
@@ -190,7 +193,7 @@ insert_into_view(Document *doc, GtkWidget *scroll) {
 	}
 
 	if(!(g_utf8_validate(contents, length, NULL))) {
-		g_fprintf(stderr, "Error: file contents were not utf-8\n");
+		error_bar("Error: file contents were not utf-8\n");
 		g_free(contents);
 		g_free(filename);
 		return;
@@ -202,10 +205,9 @@ insert_into_view(Document *doc, GtkWidget *scroll) {
 	if(doc->filename != NULL)
 		g_free(doc->filename);
 	doc->filename = g_strdup(filename);
-	basename = g_path_get_basename(filename);
-	gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(lightpad->tabs), scroll, basename);
+	set_language(doc);
+	update_tab_label(doc);
 	reset_default_status(doc);
-	g_free(basename);
 	g_free(filename);
 	g_free(contents);
 }

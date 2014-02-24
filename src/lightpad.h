@@ -17,11 +17,6 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <glib/gi18n.h>
-#include <glib/gprintf.h>
-#include <gtk/gtk.h>
-#include <gtksourceview/gtksource.h>
-
 typedef struct {
 	GtkWidget *view;
 	char *filename;
@@ -37,11 +32,9 @@ typedef struct {
 
 void error_bar(const gchar *message);
 void append_new_tab(Document *doc);
+void update_tab_label(Document *doc);
 void insert_into_buffer(GtkWidget *view, gchar *content);
 gboolean check_for_save(Document *doc);
 void reset_default_status(Document *doc);
-gboolean on_keypress_view(GtkWidget *widget, GdkEventKey *event);
-gboolean on_keypress_window(GtkWidget *widget, GdkEventKey *event);
-gboolean on_delete_window(GtkWidget *widget, GdkEvent *event);
 
 Window *lightpad;

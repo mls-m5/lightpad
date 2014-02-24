@@ -1,6 +1,6 @@
 /* -*- Mode: C; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
 /*
- * editor.h
+ * document.h
  * Copyright (C) 2014 Jente Hidskes <hjdskes@gmail.com>
  *
  * Lightpad is free software: you can redistribute it and/or modify it
@@ -18,4 +18,4 @@
  */
 
 Document *create_new_doc(gchar *filename);
-gchar *get_content_type_from_content(GtkTextBuffer *buffer, gchar *filename);
+void set_language(Document *doc);

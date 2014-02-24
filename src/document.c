@@ -1,6 +1,6 @@
 /* -*- Mode: C; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
 /*
- * editor.c
+ * document.c
  * Copyright (C) 2014 Jente Hidskes <hjdskes@gmail.com>
  *
  * Lightpad is free software: you can redistribute it and/or modify it
@@ -18,12 +18,11 @@
  */
 
 #include <glib/gi18n.h>
-#include <glib/gprintf.h>
-#include <gtk/gtk.h>
 #include <gtksourceview/gtksource.h>
 
 #include "lightpad.h"
-#include "io.h"
+#include "callbacks.h"
+#include "editor.h"
 
 #define HIGHLIGHT          TRUE
 #define HIGHLIGHT_BRACKETS TRUE
@@ -75,25 +74,31 @@ create_new_doc(gchar *filename) {
 	if(scheme != NULL)
 		gtk_source_buffer_set_style_scheme(buffer, scheme);
 
+	set_language(new);
 	return new;
 }
 
-gchar *
-get_content_type_from_content(GtkTextBuffer *buffer, gchar *filename) {
-	gchar *content_type, *data;
-	gsize datalen;
-	GtkTextIter start, end;
+void
+set_language(Document *doc) {
+	GtkTextBuffer *buffer;
+	GtkSourceLanguageManager *lm;
+	GtkSourceLanguage *lang = NULL;
+	gboolean result_uncertain;
+	gchar *content_type;
 
-	gtk_text_buffer_get_start_iter(buffer, &start);
-	end = start;
-	gtk_text_iter_forward_chars(&end, 255);
+	if(doc->filename == NULL || strcmp(doc->filename, _("New file")) == 0)
+		return;
 
-	data = gtk_text_buffer_get_text(buffer, &start, &end, TRUE);
-	datalen = strlen(data);
+	buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(doc->view));
+	content_type = g_content_type_guess(doc->filename, NULL, 0, &result_uncertain);
+	if(result_uncertain) {
+		g_free(content_type);
+		content_type = NULL;
+	}
 
-	content_type = g_content_type_guess(filename, (const guchar *)data,
-			datalen, NULL);
+	lm = gtk_source_language_manager_get_default();
+	lang = gtk_source_language_manager_guess_language(lm, doc->filename, content_type);
+	gtk_source_buffer_set_language(GTK_SOURCE_BUFFER(buffer), lang);
 
-	g_free (data);
-	return content_type;
+	g_free (content_type);
 }
