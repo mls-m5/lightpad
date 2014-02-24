@@ -26,10 +26,6 @@
 #include "editor.h"
 #include "io.h"
 
-#define HIGHLIGHT          TRUE
-#define HIGHLIGHT_BRACKETS TRUE
-#define STYLE_SCHEME       "oblivion"
-
 void
 save_to_file(Document *doc, gboolean saveas) {
 	GtkWidget *dialog;
@@ -91,7 +87,7 @@ save_to_file(Document *doc, gboolean saveas) {
 	}
 }
 
-gchar*
+gchar *
 open_get_filename(void) {
 	GtkWidget *dialog;
 	gchar *filename = NULL;
@@ -106,15 +102,15 @@ open_get_filename(void) {
 }
 
 void
-open_file(gboolean existing) {
+new_view(gboolean open_file) {
 	Document *new;
-	GtkSourceBuffer *buffer;
-	gchar *filename = NULL, *status;
+	gchar *filename = NULL;
+	gchar *status;
 	gsize length;
 	gboolean result;
 	GError *error = NULL;
 
-	if(existing) {
+	if(open_file) {
 		filename = open_get_filename();
 
 		if(filename == NULL) {
@@ -125,55 +121,36 @@ open_file(gboolean existing) {
 	} else
 		status = g_strdup("Loading...");
 
-	gtk_statusbar_push(GTK_STATUSBAR(lightpad->status),
-			lightpad->id, status);
+	gtk_statusbar_push(GTK_STATUSBAR(lightpad->status), lightpad->id, status);
 	g_free(status);
 	while(gtk_events_pending()) gtk_main_iteration();
 
-	new = g_slice_new0(Document);
-	buffer = gtk_source_buffer_new(NULL);
-	new->view = gtk_source_view_new_with_buffer(buffer);
-	g_signal_connect(new->view, "key-press-event", G_CALLBACK(on_keypress_view), NULL);
+	new = create_new_doc(filename);
 
-	if(existing) {
+	if(open_file && filename != NULL) {
 		gchar *contents = NULL;
 
 		result = g_file_get_contents(filename, &contents, &length, &error);
+		g_free(filename);
 		if(!result) {
 			if(error) {
 				error_bar(error->message);
 				g_error_free(error);
 			} else
 				error_bar("Error: cannot read file\n");
-			g_free(filename);
 			return;
 		}
 
 		if(!(g_utf8_validate(contents, length, NULL))) {
 			g_fprintf(stderr, "Error: file contents were not utf-8\n");
 			g_free(contents);
-			g_free(filename);
+			//g_free(filename);
 			return;
 		}
 
-		insert_into_view(new->view, contents);
-		new->filename = g_strdup(filename);
-		new->new = FALSE;
-		g_free(filename);
+		insert_into_buffer(new->view, contents);
 		g_free(contents);
-	} else {
-		new->filename = g_strdup(_("New file"));
-		new->new = TRUE;
 	}
-
-	/* syntax, theme, etc */
-	GtkSourceStyleScheme *scheme;
-
-	gtk_source_buffer_set_highlight_syntax(buffer, HIGHLIGHT);
-	gtk_source_buffer_set_highlight_matching_brackets(buffer, HIGHLIGHT_BRACKETS);
-	scheme = get_style_scheme(STYLE_SCHEME);
-	if(scheme != NULL)
-		gtk_source_buffer_set_style_scheme(buffer, scheme);
 
 	append_new_tab(new);
 	gtk_statusbar_pop(GTK_STATUSBAR(lightpad->status), lightpad->id);
@@ -181,10 +158,13 @@ open_file(gboolean existing) {
 }
 
 void
-insert_file(Document *doc, GtkWidget *scroll) {
-	gchar *filename = NULL, *contents = NULL, *basename;
+insert_into_view(Document *doc, GtkWidget *scroll) {
+	gchar *filename = NULL;
+	gchar *contents = NULL;
+	gchar *basename;
+	gchar *status;
 	gsize length;
-	gboolean status;
+	gboolean result;
 	GError *error = NULL;
 
 	filename = open_get_filename();
@@ -193,9 +173,13 @@ insert_file(Document *doc, GtkWidget *scroll) {
 		error_bar("Error: filename is null\n");
 		return;
 	}
+	status = g_strdup_printf("Loading %s...", filename);
+	gtk_statusbar_push(GTK_STATUSBAR(lightpad->status), lightpad->id, status);
+	g_free(status);
+	while(gtk_events_pending()) gtk_main_iteration();
 
-	status = g_file_get_contents(filename, &contents, &length, &error);
-	if(!status) {
+	result = g_file_get_contents(filename, &contents, &length, &error);
+	if(!result) {
 		if(error) {
 			error_bar(error->message);
 			g_error_free(error);
@@ -212,7 +196,7 @@ insert_file(Document *doc, GtkWidget *scroll) {
 		return;
 	}
 
-	insert_into_view(doc->view, contents);
+	insert_into_buffer(doc->view, contents);
 
 	doc->new = FALSE;
 	if(doc->filename != NULL)

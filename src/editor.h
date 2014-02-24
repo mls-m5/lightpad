@@ -1,6 +1,6 @@
 /* -*- Mode: C; indent-tabs-mode: t; c-basic-offset: 4; tab-width: 4 -*-  */
 /*
- * io.h
+ * editor.h
  * Copyright (C) 2014 Jente Hidskes <hjdskes@gmail.com>
  *
  * Lightpad is free software: you can redistribute it and/or modify it
@@ -17,7 +17,5 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-void save_to_file(Document *doc, gboolean saveas);
-gchar *open_get_filename(void);
-void new_view(gboolean existing);
-void insert_into_view(Document *doc, GtkWidget *scroll);
+Document *create_new_doc(gchar *filename);
+gchar *get_content_type_from_content(GtkTextBuffer *buffer, gchar *filename);

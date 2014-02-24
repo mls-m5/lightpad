@@ -23,6 +23,7 @@
 #include <gtksourceview/gtksource.h>
 
 #include "lightpad.h"
+#include "editor.h"
 #include "io.h"
 
 /*
@@ -105,7 +106,7 @@ append_new_tab(Document *doc) {
 }
 
 void
-insert_into_view(GtkWidget *view, gchar *contents) {
+insert_into_buffer(GtkWidget *view, gchar *contents) {
 	GtkTextBuffer *buffer;
 	GtkTextIter iter;
 
@@ -137,8 +138,10 @@ check_for_save(Document *doc) {
 	if(gtk_text_buffer_get_modified(buffer) == TRUE) {
 		GtkWidget *dialog;
 
-		dialog = gtk_message_dialog_new(GTK_WINDOW(lightpad->window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
-				GTK_MESSAGE_QUESTION, GTK_BUTTONS_YES_NO, _("Do you want to save the changes you have made?"));
+		dialog = gtk_message_dialog_new(GTK_WINDOW(lightpad->window),
+				GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+				GTK_MESSAGE_QUESTION, GTK_BUTTONS_YES_NO,
+				_("Do you want to save the changes you have made?"));
 		gtk_window_set_title(GTK_WINDOW(dialog), _("Save changes?"));
 		if(gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_YES)
 			save = TRUE;
@@ -212,11 +215,11 @@ on_keypress_window(GtkWidget *widget, GdkEventKey *event) {
 			case GDK_KEY_o:
 				if(curr->new) {
 					if(check_for_save(curr) == TRUE) save_to_file(curr, TRUE);
-					insert_file(curr, scroll);
-				} else open_file(TRUE);
+					insert_into_view(curr, scroll);
+				} else new_view(TRUE);
 				return TRUE; break;
 			case GDK_KEY_t:
-			case GDK_KEY_n: open_file(FALSE); return TRUE; break;
+			case GDK_KEY_n: new_view(FALSE); return TRUE; break;
 			case GDK_KEY_w: /*close_tab(curr, index)*/ g_fprintf(stdout, "Close tab\n"); return TRUE; break;
 			case GDK_KEY_s: save_to_file(curr, FALSE); return TRUE; break;
 			case GDK_KEY_S: save_to_file(curr, TRUE); return TRUE; break;
@@ -293,11 +296,12 @@ main(int argc, char **argv) {
 			"Lightpad text editor");
 	gtk_box_pack_start(GTK_BOX(vbox), lightpad->status, FALSE, TRUE, 0);
 
-	open_file(FALSE);
+	new_view(FALSE);
 
 	g_signal_connect(lightpad->window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
 	g_signal_connect(lightpad->window, "delete-event", G_CALLBACK(on_delete_window), NULL);
 	g_signal_connect(lightpad->window, "key-press-event", G_CALLBACK(on_keypress_window), NULL);
+	//g_signal_connect(lightpad->tabs, "switch-page", G_CALLBACK(reset_default_status), NULL);
 
 	gtk_widget_show_all(lightpad->window);
 	gtk_main();

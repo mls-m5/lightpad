@@ -37,7 +37,7 @@ typedef struct {
 
 void error_bar(const gchar *message);
 void append_new_tab(Document *doc);
-void insert_into_view(GtkWidget *view, gchar *content);
+void insert_into_buffer(GtkWidget *view, gchar *content);
 gboolean check_for_save(Document *doc);
 void reset_default_status(Document *doc);
 gboolean on_keypress_view(GtkWidget *widget, GdkEventKey *event);
