@@ -29,6 +29,8 @@
 
 /*
  * TODO:
+ *   file saved/not saved indicator in tab label
+ *   dont ask to save file when undoes have happened
  *   look more into signals
  *   expand statusbar
        buttons to change settings
