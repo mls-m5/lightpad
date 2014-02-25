@@ -24,8 +24,21 @@
 #include "callbacks.h"
 #include "document.h"
 
+#define WRAP_STYLE         2
 #define HIGHLIGHT          TRUE
 #define HIGHLIGHT_BRACKETS TRUE
+#define AUTO_INDENT        TRUE
+#define INDENT_ON_TAB      TRUE
+#define INDENT_WIDTH       4
+#define SPACES_IO_TABS     FALSE
+#define SMART_HOME_END     1
+#define HIGHLIGHT_CURR     TRUE
+//#define LINE_MARKS         FALSE
+#define LINE_NUMBERS       TRUE
+#define SHOW_RIGHT_MARGIN  TRUE
+#define RIGHT_MARGIN_POS   140
+#define TAB_WIDTH          4
+#define DRAW_SPACES        TRUE
 #define STYLE_SCHEME       "oblivion"
 
 /* This function is taken from GEdit.
@@ -80,7 +93,19 @@ create_new_doc(char *filename) {
 	if(scheme != NULL)
 		gtk_source_buffer_set_style_scheme(buffer, scheme);
 	set_language(new);
-
+	gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(new->view), WRAP_STYLE);
+	gtk_source_view_set_auto_indent(GTK_SOURCE_VIEW(new->view), AUTO_INDENT);
+	gtk_source_view_set_indent_on_tab(GTK_SOURCE_VIEW(new->view), INDENT_ON_TAB);
+	gtk_source_view_set_indent_width(GTK_SOURCE_VIEW(new->view), INDENT_WIDTH);
+	gtk_source_view_set_insert_spaces_instead_of_tabs(GTK_SOURCE_VIEW(new->view), SPACES_IO_TABS);
+	gtk_source_view_set_smart_home_end(GTK_SOURCE_VIEW(new->view), SMART_HOME_END);
+	gtk_source_view_set_highlight_current_line(GTK_SOURCE_VIEW(new->view), HIGHLIGHT_CURR);
+	//gtk_source_view_set_show_line_marks(GTK_SOURCE_VIEW(new->view), LINE_MARKS);
+	gtk_source_view_set_show_line_numbers(GTK_SOURCE_VIEW(new->view), LINE_NUMBERS);
+	gtk_source_view_set_show_right_margin(GTK_SOURCE_VIEW(new->view), SHOW_RIGHT_MARGIN);
+	gtk_source_view_set_right_margin_position(GTK_SOURCE_VIEW(new->view), RIGHT_MARGIN_POS);
+	gtk_source_view_set_tab_width(GTK_SOURCE_VIEW(new->view), TAB_WIDTH);
+	gtk_source_view_set_draw_spaces(GTK_SOURCE_VIEW(new->view), DRAW_SPACES);
 	return new;
 }
 
