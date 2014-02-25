@@ -23,11 +23,13 @@
 #include <gtksourceview/gtksource.h>
 
 #include "lightpad.h"
+#include "document.h"
 #include "callbacks.h"
 #include "io.h"
 
 /*
  * TODO:
+ *   look more into signals
  *   expand statusbar
        buttons to change settings
          settings
@@ -51,64 +53,58 @@
        auto-save every n minutes
  */
 
-void
-error_bar(const gchar *message) {
-	/*GtkWidget *infobar, *label, *content;*/
+void /*ToDo: transform this into a fancy GtkInfoBar */
+error_dialog(const char *message) {
+	GtkWidget *dialog;
 
 	g_fprintf(stderr, message);
 
-	/*infobar = gtk_info_bar_new();
-	gtk_info_bar_add_button(GTK_INFO_BAR(infobar), _("Ok"), GTK_RESPONSE_OK);
-	gtk_info_bar_set_message_type(GTK_INFO_BAR(infobar), GTK_MESSAGE_ERROR);
-	g_signal_connect(infobar, "response", G_CALLBACK(gtk_widget_destroy), NULL);
-
-	label = gtk_label_new(message);
+	dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+			GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, message);
+	gtk_window_set_title(GTK_WINDOW(dialog), "Error!");
+	gtk_dialog_run(GTK_DIALOG(dialog));
+	gtk_widget_destroy(dialog);
 	g_free((gpointer)message);
-
-	content = gtk_info_bar_get_content_area(GTK_INFO_BAR(infobar));
-	gtk_container_add(GTK_CONTAINER(content), label);
-
-	//pack it somewhere
-	gtk_widget_show_all(infobar); //FIXME: is this necessary?*/
 }
 
 void
 append_new_tab(Document *doc) {
 	GtkWidget *scroll, *label;
-	gchar *basename;
+	char *basename;
 
 	basename = g_path_get_basename(doc->filename);
 	label = gtk_label_new(basename);
 	g_free(basename);
 
 	scroll = gtk_scrolled_window_new(NULL, NULL);
-	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll), GTK_POLICY_AUTOMATIC,
+			GTK_POLICY_AUTOMATIC);
 	gtk_scrolled_window_set_shadow_type(GTK_SCROLLED_WINDOW(scroll), GTK_SHADOW_NONE);
 	gtk_widget_set_vexpand(scroll, TRUE);
-
 	gtk_container_add(GTK_CONTAINER(scroll), doc->view);
-
-	if(gtk_notebook_append_page(GTK_NOTEBOOK(lightpad->tabs), scroll, label) < 0) {
-		error_bar("Error: failed to add new tab\n");
-		g_object_unref(scroll);
-		//FIXME: remove view?
-		return;
-	}
 
 	/* Store the structure inside the GtkScrolledWindow.
 	 * This way, we can use GtkNotebook to supply the
 	 * correct Document struct instead of keeping an
 	 * additional list ourselves.
 	 */
-	g_object_set_data(G_OBJECT(scroll), "struct", doc);
-	gtk_widget_show_all(lightpad->tabs); //FIXME: why is this necessary?
-	gtk_notebook_set_current_page(GTK_NOTEBOOK(lightpad->tabs), -1);
+	g_object_set_data_full(G_OBJECT(scroll), "doc", doc, (GDestroyNotify)free_document);
+	gtk_widget_show_all(scroll);
+	gtk_notebook_append_page(GTK_NOTEBOOK(lightpad->tabs), scroll, label);
+}
+
+void
+close_tab(Document *doc, int index) {
+	GtkWidget *scroll;
+
+	scroll = gtk_notebook_get_nth_page(GTK_NOTEBOOK(lightpad->tabs), index);
+	gtk_widget_destroy(scroll); /* this destroys both scroll's child as its container */
 }
 
 void
 update_tab_label(Document *doc) {
 	GtkWidget *scroll;
-	gchar *basename;
+	char *basename;
 	int index;
 
 	index = gtk_notebook_get_current_page(GTK_NOTEBOOK(lightpad->tabs));
@@ -119,47 +115,29 @@ update_tab_label(Document *doc) {
 	g_free(basename);
 }
 
-void
-insert_into_buffer(GtkWidget *view, gchar *contents) {
-	GtkTextBuffer *buffer;
-	GtkTextIter iter;
-
-	buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(view));
-	gtk_widget_set_sensitive(view, FALSE);
-	gtk_source_buffer_begin_not_undoable_action(GTK_SOURCE_BUFFER(buffer));
-	if(contents != NULL)
-		gtk_text_buffer_set_text(buffer, contents, -1);
-	else
-		error_bar("Error: can not insert file into the buffer! The file contents are null\n");
-	gtk_source_buffer_end_not_undoable_action(GTK_SOURCE_BUFFER(buffer));
-	gtk_widget_set_sensitive(view, TRUE);
-
-	/* move cursor to the beginning */
-	gtk_text_buffer_get_start_iter(buffer, &iter);
-	gtk_text_buffer_place_cursor(buffer, &iter);
-
-	/* to detect whether file has changed */
-	gtk_text_buffer_set_modified(buffer, FALSE);
-}
-
 gboolean
 check_for_save(Document *doc) {
-	gboolean save = FALSE;
 	GtkTextBuffer *buffer;
+	gboolean save = FALSE;
 
 	buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(doc->view));
 
 	if(gtk_text_buffer_get_modified(buffer) == TRUE) {
 		GtkWidget *dialog;
+		char *message;
 
+		message = g_strdup_printf(
+				_("Do you want to save the changes in file '%s' before closing?\n"
+				"If you do not, the changes will be lost.\n"), doc->filename);
 		dialog = gtk_message_dialog_new(GTK_WINDOW(lightpad->window),
 				GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
-				GTK_MESSAGE_QUESTION, GTK_BUTTONS_YES_NO,
-				_("Do you want to save the changes you have made?"));
+				GTK_MESSAGE_WARNING, GTK_BUTTONS_YES_NO,
+				message);
 		gtk_window_set_title(GTK_WINDOW(dialog), _("Save changes?"));
 		if(gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_YES)
 			save = TRUE;
-		gtk_widget_destroy(dialog);      
+		gtk_widget_destroy(dialog);
+		g_free(message);
 	}     
 
 	return save;
@@ -167,7 +145,7 @@ check_for_save(Document *doc) {
 
 void
 reset_default_status(Document *doc) {
-	gchar *status, *basename;
+	char *status, *basename;
 
 	basename = g_path_get_basename(doc->filename);
 	status = g_strdup_printf(_("File: %s"), basename);
@@ -176,22 +154,6 @@ reset_default_status(Document *doc) {
 	g_free(basename);
 	g_free(status);
 }
-
-/*void
-cleanup() {
-	int pages;
-	//GtkWidget *scroll;
-	//Document *curr;
-
-	pages = gtk_notebook_get_n_pages(GTK_NOTEBOOK(lightpad->tabs));
-	for(int i = 0; i < pages; i++) {
-		//scroll = gtk_notebook_get_nth_page(GTK_NOTEBOOK(lightpad->tabs), i);
-		//curr = g_object_get_data(G_OBJECT(scroll), "struct");
-		//TODO: free
-		g_fprintf(stdout, "Cleanup\n");
-	}
-	g_slice_free(Window, lightpad);
-}*/
 
 int
 main(int argc, char **argv) {
@@ -223,10 +185,16 @@ main(int argc, char **argv) {
 	g_signal_connect(lightpad->window, "delete-event", G_CALLBACK(on_delete_window), NULL);
 	g_signal_connect(lightpad->window, "key-press-event", G_CALLBACK(on_keypress_window), NULL);
 	g_signal_connect(lightpad->tabs, "switch-page", G_CALLBACK(on_page_switch), NULL);
+	g_signal_connect(lightpad->tabs, "page-added", G_CALLBACK(on_page_added), NULL);
 
 	gtk_widget_show_all(lightpad->window);
 	gtk_main();
 
-	//cleanup();
+	/* This will destroy all the childs, who in turn
+	 * will destroy their own childs et cetera.
+	 * Thus, there is no need to explicitly destroy
+	 * all the GtkScrolledWindow objects */
+	gtk_widget_destroy(lightpad->window);
+	g_slice_free(Window, lightpad);
 	return 0;
 }

@@ -22,26 +22,32 @@
 
 #include "lightpad.h"
 #include "callbacks.h"
-#include "editor.h"
+#include "document.h"
 
 #define HIGHLIGHT          TRUE
 #define HIGHLIGHT_BRACKETS TRUE
 #define STYLE_SCHEME       "oblivion"
 
-/* taken from GEdit */
+/* This function is taken from GEdit.
+ * GEdit is licensed under the GPLv2.
+ *
+ * Copyright (C) 1998, 1999 Alex Roberts, Evan Lawrence
+ * Copyright (C) 2000, 2001 Chema Celorio, Paolo Maggi
+ * Copyright (C) 2002-2005 Paolo Maggi
+ */
 static GtkSourceStyleScheme *
-get_style_scheme(gchar *scheme_id) {
+get_style_scheme(char *scheme_id) {
 	GtkSourceStyleSchemeManager *manager;
 	GtkSourceStyleScheme *def_style;
 
 	manager = gtk_source_style_scheme_manager_get_default();
 	def_style = gtk_source_style_scheme_manager_get_scheme(manager, scheme_id);
 	if(def_style == NULL) {
-		error_bar("Style scheme cannot be found, falling back to 'classic' style scheme ");
+		error_dialog("Style scheme cannot be found, falling back to 'classic' style scheme");
 
 		def_style = gtk_source_style_scheme_manager_get_scheme(manager, "classic");
 		if(def_style == NULL) {
-			error_bar("Style scheme 'classic' cannot be found, check your GtkSourceView installation.");
+			error_dialog("Style scheme 'classic' cannot be found, check your GtkSourceView installation.");
 		}
 	}
 
@@ -50,7 +56,7 @@ get_style_scheme(gchar *scheme_id) {
 }
 
 Document *
-create_new_doc(gchar *filename) {
+create_new_doc(char *filename) {
 	Document *new;
 	GtkSourceStyleScheme *scheme;
 	GtkSourceBuffer *buffer;
@@ -73,9 +79,16 @@ create_new_doc(gchar *filename) {
 	scheme = get_style_scheme(STYLE_SCHEME);
 	if(scheme != NULL)
 		gtk_source_buffer_set_style_scheme(buffer, scheme);
-
 	set_language(new);
+
 	return new;
+}
+
+void
+free_document(Document *doc) {
+	/*the view is automatically freed by destroying its container */
+	g_free(doc->filename);
+	g_slice_free(Document, doc);
 }
 
 void
@@ -83,22 +96,54 @@ set_language(Document *doc) {
 	GtkTextBuffer *buffer;
 	GtkSourceLanguageManager *lm;
 	GtkSourceLanguage *lang = NULL;
+	GtkTextIter start, end;
 	gboolean result_uncertain;
-	gchar *content_type;
+	char *content_type;
+	char *data;
+	gsize length;
 
 	if(doc->filename == NULL || strcmp(doc->filename, _("New file")) == 0)
 		return;
 
 	buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(doc->view));
-	content_type = g_content_type_guess(doc->filename, NULL, 0, &result_uncertain);
+	gtk_text_buffer_get_start_iter(buffer, &start);
+	end = start;
+	gtk_text_iter_forward_chars(&end, 255);
+
+	data = gtk_text_buffer_get_text(buffer, &start, &end, TRUE);
+	length = strlen(data);
+	content_type = g_content_type_guess(doc->filename, (const guchar *)data, length,
+			&result_uncertain);
 	if(result_uncertain) {
 		g_free(content_type);
 		content_type = NULL;
 	}
+	g_free(data);
 
 	lm = gtk_source_language_manager_get_default();
 	lang = gtk_source_language_manager_guess_language(lm, doc->filename, content_type);
 	gtk_source_buffer_set_language(GTK_SOURCE_BUFFER(buffer), lang);
 
-	g_free (content_type);
+	g_free(content_type);
+}
+
+void
+insert_into_buffer(GtkWidget *view, char *contents) {
+	GtkTextBuffer *buffer;
+	GtkTextIter iter;
+
+	buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(view));
+	gtk_source_buffer_begin_not_undoable_action(GTK_SOURCE_BUFFER(buffer));
+	if(contents != NULL)
+		gtk_text_buffer_set_text(buffer, contents, -1);
+	else
+		error_dialog("Error: can not insert file into the buffer! The file contents are null\n");
+	gtk_source_buffer_end_not_undoable_action(GTK_SOURCE_BUFFER(buffer));
+
+	/* move cursor to the beginning */
+	gtk_text_buffer_get_start_iter(buffer, &iter);
+	gtk_text_buffer_place_cursor(buffer, &iter);
+
+	/* to detect whether file has changed */
+	gtk_text_buffer_set_modified(buffer, FALSE);
 }

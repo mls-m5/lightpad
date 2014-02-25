@@ -17,5 +17,7 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-Document *create_new_doc(gchar *filename);
+Document *create_new_doc(char *filename);
+void free_document(Document *doc);
 void set_language(Document *doc);
+void insert_into_buffer(GtkWidget *view, char *content);

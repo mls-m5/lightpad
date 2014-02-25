@@ -25,7 +25,7 @@
 #include "io.h"
 
 gboolean
-on_keypress_view(GtkWidget *widget, GdkEventKey *event) {
+on_keypress_view(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
 	if((event->state & GDK_CONTROL_MASK) == GDK_CONTROL_MASK) {
 		switch(event->keyval) {
 			case GDK_KEY_m: g_fprintf(stdout, "Mark\n"); return TRUE; break;
@@ -54,7 +54,7 @@ on_keypress_view(GtkWidget *widget, GdkEventKey *event) {
  * parent handler, skipping gtk_window_key_press_event.
  */
 gboolean
-on_keypress_window(GtkWidget *widget, GdkEventKey *event) {
+on_keypress_window(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
 	GtkWindow *window = GTK_WINDOW(widget);
 	gboolean handled = FALSE;
 
@@ -71,6 +71,7 @@ on_keypress_window(GtkWidget *widget, GdkEventKey *event) {
 	Document *doc;
 	int index;
 
+	//FIXME: segfault when there is no scroll object
 	index = gtk_notebook_get_current_page(GTK_NOTEBOOK(lightpad->tabs));
 	scroll = gtk_notebook_get_nth_page(GTK_NOTEBOOK(lightpad->tabs), index);
 	doc = g_object_get_data(G_OBJECT(scroll), "doc");
@@ -116,7 +117,7 @@ on_keypress_window(GtkWidget *widget, GdkEventKey *event) {
  * effectively cancel the close based on the value we return.
 */
 gboolean 
-on_delete_window(GtkWidget *widget, GdkEvent *event) {
+on_delete_window(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
 	Document *doc;
 	GtkWidget *scroll;
 	int pages;

@@ -48,4 +48,4 @@ You should have received a copy of the GNU General Public License along with thi
 Some code is based on/copied from the TutorialTextEditor. These parts are licensed under the GPLv2 license.
 **Copyright © 2007** Micah Carrick <email@micahcarrick.com>
 
-Another great help at times has been jjacky from the Arch Linux forums - thank you!
+Another great help at things I could not figure out myself has been Olivier Brunel - thank you for your help!

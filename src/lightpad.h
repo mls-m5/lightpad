@@ -30,10 +30,10 @@ typedef struct {
 	guint id;
 } Window;
 
-void error_bar(const gchar *message);
+void error_dialog(const char *message);
 void append_new_tab(Document *doc);
+void close_tab(Document *doc, int index);
 void update_tab_label(Document *doc);
-void insert_into_buffer(GtkWidget *view, gchar *content);
 gboolean check_for_save(Document *doc);
 void reset_default_status(Document *doc);
 

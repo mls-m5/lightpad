@@ -18,6 +18,6 @@
  */
 
 void save_to_file(Document *doc, gboolean saveas);
-gchar *open_get_filename(void);
+char *open_get_filename(void);
 void new_view(gboolean existing);
 void insert_into_view(Document *doc);

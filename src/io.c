@@ -21,17 +21,17 @@
 #include <gtk/gtk.h>
 
 #include "lightpad.h"
-#include "editor.h"
+#include "document.h"
 
 void
 save_to_file(Document *doc, gboolean saveas) {
 	GtkWidget *dialog;
 	GtkTextBuffer *buffer;
 	GtkTextIter start, end;
-	gchar *path = NULL;
-	gchar *contents;
-	gchar *status;
-	gchar *basename;
+	char *path = NULL;
+	char *contents;
+	char *status;
+	char *basename;
 	gboolean result = FALSE;
 	GError *error = NULL;
 
@@ -56,8 +56,7 @@ save_to_file(Document *doc, gboolean saveas) {
 		if(doc->filename != NULL)
 			g_free(doc->filename);
 		basename = g_path_get_basename(path);
-		doc->filename = g_strdup(basename);
-		g_free(basename);
+		doc->filename = basename;
 		set_language(doc);
 		update_tab_label(doc);
 	} else
@@ -66,35 +65,34 @@ save_to_file(Document *doc, gboolean saveas) {
 	status = g_strdup_printf("Saving %s...", path);
 	gtk_statusbar_push(GTK_STATUSBAR(lightpad->status), lightpad->id, status);
 	g_free(status);
-	while(gtk_events_pending()) gtk_main_iteration();
+	//while(gtk_events_pending()) gtk_main_iteration();
 
-	gtk_widget_set_sensitive(doc->view, FALSE);
 	buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(doc->view));
 	gtk_text_buffer_get_start_iter(GTK_TEXT_BUFFER(buffer), &start);
 	gtk_text_buffer_get_end_iter(GTK_TEXT_BUFFER(buffer), &end);
 	contents = gtk_text_buffer_get_text(GTK_TEXT_BUFFER(buffer), &start, &end, FALSE);       
 	gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(buffer), FALSE);
-	gtk_widget_set_sensitive(doc->view, TRUE);
 
 	result = g_file_set_contents(path, contents, -1, &error);
+	if(saveas || doc->new)
+		g_free(path);
 	g_free(contents);
-	g_free(path);
 	gtk_statusbar_pop(GTK_STATUSBAR(lightpad->status), lightpad->id);
 	reset_default_status(doc);
 	if(!result) {
 		if(error) {
-			error_bar(error->message);
+			error_dialog(error->message);
 			g_error_free(error);
 		} else
-			error_bar("Error: cannot save to file. Something went wrong\n");
+			error_dialog("Error: cannot save to file. Something went wrong\n");
 		return;
 	}
 }
 
-gchar *
+char *
 open_get_filename(void) {
 	GtkWidget *dialog;
-	gchar *filename = NULL;
+	char *filename = NULL;
 
 	dialog = gtk_file_chooser_dialog_new(_("Open File"), GTK_WINDOW(lightpad->window),
 			GTK_FILE_CHOOSER_ACTION_OPEN, _("_Cancel"), GTK_RESPONSE_CANCEL,
@@ -108,8 +106,8 @@ open_get_filename(void) {
 void
 new_view(gboolean open_file) {
 	Document *new;
-	gchar *filename = NULL;
-	gchar *status;
+	char *filename = NULL;
+	char *status;
 	gsize length;
 	gboolean result;
 	GError *error = NULL;
@@ -118,7 +116,7 @@ new_view(gboolean open_file) {
 		filename = open_get_filename();
 
 		if(filename == NULL) {
-			error_bar("Error: filename is null\n");
+			error_dialog("Error: filename is null\n");
 			return;
 		}
 		status = g_strdup_printf("Loading %s...", filename);
@@ -127,29 +125,30 @@ new_view(gboolean open_file) {
 
 	gtk_statusbar_push(GTK_STATUSBAR(lightpad->status), lightpad->id, status);
 	g_free(status);
-	while(gtk_events_pending()) gtk_main_iteration();
+	//while(gtk_events_pending()) gtk_main_iteration();
 
 	new = create_new_doc(filename);
 
 	if(open_file && filename != NULL) {
-		gchar *contents = NULL;
+		char *contents = NULL;
 
 		result = g_file_get_contents(filename, &contents, &length, &error);
 		g_free(filename);
 		if(!result) {
 			if(error) {
-				error_bar(error->message);
+				error_dialog(error->message);
 				g_error_free(error);
 			} else
-				error_bar("Error: cannot read file\n");
+				error_dialog("Error: cannot read file\n");
+			free_document(new);
 			return;
 		}
 
 		if(!(g_utf8_validate(contents, length, NULL))) {
-			error_bar("Error: file contents were not utf-8\n");
+			error_dialog("Error: file contents were not utf-8\n");
 			g_free(contents);
 			//g_free(filename);
-			return;
+			return; //FIXME: segfault
 		}
 
 		insert_into_buffer(new->view, contents);
@@ -163,9 +162,9 @@ new_view(gboolean open_file) {
 
 void
 insert_into_view(Document *doc) {
-	gchar *filename = NULL;
-	gchar *contents = NULL;
-	gchar *status;
+	char *filename = NULL;
+	char *contents = NULL;
+	char *status;
 	gsize length;
 	gboolean result;
 	GError *error = NULL;
@@ -173,27 +172,27 @@ insert_into_view(Document *doc) {
 	filename = open_get_filename();
 
 	if(filename == NULL) {
-		error_bar("Error: filename is null\n");
+		error_dialog("Error: filename is null\n"); //FIXME: segfault
 		return;
 	}
 	status = g_strdup_printf("Loading %s...", filename);
 	gtk_statusbar_push(GTK_STATUSBAR(lightpad->status), lightpad->id, status);
 	g_free(status);
-	while(gtk_events_pending()) gtk_main_iteration();
+	//while(gtk_events_pending()) gtk_main_iteration();
 
 	result = g_file_get_contents(filename, &contents, &length, &error);
 	if(!result) {
 		if(error) {
-			error_bar(error->message);
+			error_dialog(error->message);
 			g_error_free(error);
 		} else
-			error_bar("Error: cannot read file\n");
+			error_dialog("Error: cannot read file\n");
 		g_free(filename);
 		return;
 	}
 
 	if(!(g_utf8_validate(contents, length, NULL))) {
-		error_bar("Error: file contents were not utf-8\n");
+		error_dialog("Error: file contents were not utf-8\n");
 		g_free(contents);
 		g_free(filename);
 		return;
