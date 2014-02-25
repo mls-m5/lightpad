@@ -57,6 +57,7 @@ save_to_file(Document *doc, gboolean saveas) {
 			g_free(doc->filename);
 		basename = g_path_get_basename(path);
 		doc->filename = basename;
+		doc->new = FALSE;
 		set_language(doc);
 		update_tab_label(doc);
 	} else
