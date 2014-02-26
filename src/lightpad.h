@@ -24,6 +24,25 @@ typedef struct {
 } Document;
 
 typedef struct {
+	const char *font;
+	const char *scheme;
+	gboolean highlight_syntax;
+	gboolean highlight_curr_line;
+	gboolean highlight_brackets;
+	gboolean auto_indent;
+	gboolean indent_on_tab;
+	int indent_width;
+	gboolean spaces_io_tabs;
+	int smart_home_end;
+	int wrap_mode;
+	gboolean line_numbers;
+	gboolean show_right_margin;
+	int right_margin_pos;
+	int tab_width;
+	gboolean draw_spaces;
+} Settings;
+
+typedef struct {
 	GtkWidget *window;
 	GtkWidget *tabs;
 	GtkWidget *status;
@@ -38,3 +57,4 @@ gboolean check_for_save(Document *doc);
 void reset_default_status(Document *doc);
 
 Window *lightpad;
+Settings *settings;

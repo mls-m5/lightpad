@@ -29,6 +29,8 @@
 
 /*
  * TODO:
+ *   look into line marks
+ *   open file dialog should start in current folder
  *   file saved/not saved indicator in tab label
  *   dont ask to save file when undoes have happened
  *   look more into signals
@@ -41,16 +43,8 @@
        colom number
      configuration à la gedit?
        font
-       colorscheme
-       show rownumbers
-       show right border
        linebreak
        dont split words on two rows
-       highlight current line
-       highlight matching brackets
-       tabsize
-       spaces instead of tabs
-       automatic indentation
        backup copy
        auto-save every n minutes
  */
@@ -157,9 +151,47 @@ reset_default_status(Document *doc) {
 	g_free(status);
 }
 
+static void
+read_config(const char *file) {
+	GKeyFile *cfg;
+	GError *error = NULL;
+
+	cfg = g_key_file_new();
+	if(!g_key_file_load_from_file(cfg, file, G_KEY_FILE_NONE, &error)) {
+		if(error) {
+			error_dialog(error->message);
+			g_error_free(error);
+		} else
+			error_dialog("Error: cannot read configuration file!\nWill fallback to defaults.\n");
+		g_key_file_free(cfg);
+		return;
+	}
+
+	settings = g_slice_new0(Settings);
+	//TODO: this might need error-checking
+	settings->font = g_key_file_get_string(cfg, "Lightpad", "font", NULL);
+	settings->scheme = g_key_file_get_string(cfg, "Lightpad", "scheme", NULL);
+	settings->highlight_syntax = g_key_file_get_boolean(cfg, "Lightpad", "highlight_syntax", NULL);
+	settings->highlight_curr_line = g_key_file_get_boolean(cfg, "Lightpad", "highlight_curr_line", NULL);
+	settings->highlight_brackets = g_key_file_get_boolean(cfg, "Lightpad", "highlight_brackets", NULL);
+	settings->auto_indent = g_key_file_get_boolean(cfg, "Lightpad", "auto_indent", NULL);
+	settings->indent_width = g_key_file_get_integer(cfg, "Lightpad", "indent_width", NULL);
+	settings->spaces_io_tabs = g_key_file_get_boolean(cfg, "Lightpad", "spaces_io_tabs", NULL);
+	settings->smart_home_end = g_key_file_get_integer(cfg, "Lightpad", "smart_home_end", NULL);
+	settings->wrap_mode = g_key_file_get_integer(cfg, "Lightpad", "wrap_mode", NULL);
+	settings->line_numbers = g_key_file_get_boolean(cfg, "Lightpad", "line_numbers", NULL);
+	settings->show_right_margin = g_key_file_get_boolean(cfg, "Lightpad", "show_right_margin", NULL);
+	settings->right_margin_pos = g_key_file_get_integer(cfg, "Lightpad", "right_margin_pos", NULL);
+	settings->tab_width = g_key_file_get_integer(cfg, "Lightpad", "tab_width", NULL);
+	settings->draw_spaces = g_key_file_get_integer(cfg, "Lightpad", "draw_spaces", NULL);
+	g_key_file_free(cfg);
+}
+
 int
 main(int argc, char **argv) {
 	GtkWidget *vbox;
+	const char *path;
+	char *file;
 
 	lightpad = g_slice_new0(Window);
 
@@ -181,6 +213,15 @@ main(int argc, char **argv) {
 			"Lightpad text editor");
 	gtk_box_pack_start(GTK_BOX(vbox), lightpad->status, FALSE, TRUE, 0);
 
+	path = g_get_user_config_dir();
+	if(path == NULL)
+		error_dialog("Error: can not determine path to config directory!\nWill fallback to default settings\n");
+	else {
+		file = g_build_filename(path, "lightpad/lightpad.cfg", NULL);
+		g_free((gpointer)path);
+		read_config(file);
+		g_free(file);
+	}
 	new_view(FALSE);
 
 	g_signal_connect(lightpad->window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
@@ -198,5 +239,8 @@ main(int argc, char **argv) {
 	 * all the GtkScrolledWindow objects */
 	gtk_widget_destroy(lightpad->window);
 	g_slice_free(Window, lightpad);
+	g_free((gpointer)settings->font);
+	g_free((gpointer)settings->scheme);
+	g_slice_free(Settings, settings);
 	return 0;
 }
