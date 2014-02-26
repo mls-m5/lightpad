@@ -115,7 +115,7 @@ on_keypress_window(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
  * unsaved work. We use this callback to prompt the user to save their work before
  * they exit the application. From the "delete-event" signal, we can choose to
  * effectively cancel the close based on the value we return.
-*/
+ */
 gboolean 
 on_delete_window(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
 	Document *doc;

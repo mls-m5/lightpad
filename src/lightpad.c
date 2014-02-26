@@ -31,7 +31,7 @@
  * TODO:
  * cancel button on save warning
  * have sourceview grab focus
- * reorderable tabs, both with mouse and keyboard
+ * reorderable tabs with keyboard
  * look into line marks
  * open file dialog should start in current folder
  * file saved/not saved indicator in tab label
@@ -87,6 +87,7 @@ append_new_tab(Document *doc) {
 	g_object_set_data_full(G_OBJECT(scroll), "doc", doc, (GDestroyNotify)free_document);
 	gtk_widget_show_all(scroll);
 	gtk_notebook_append_page(GTK_NOTEBOOK(lightpad->tabs), scroll, label);
+	gtk_notebook_set_tab_reorderable(GTK_NOTEBOOK(lightpad->tabs), scroll, TRUE);
 }
 
 void
