@@ -29,6 +29,8 @@
 
 /*
  * TODO:
+ * do something about all the language managers popping up everywhere,
+   maybe a global one?
  * cancel button on save warning
  * have sourceview grab focus
  * reorderable tabs with keyboard
@@ -38,10 +40,6 @@
  * dont ask to save file when undoes have happened
  * look more into signals
  * expand statusbar
-     buttons to change settings
-       settings
-         syntax highlighting
-         tab size
      row number
      colom number
  * configuration à la gedit?
@@ -91,9 +89,16 @@ append_new_tab(Document *doc) {
 }
 
 void
-close_tab(Document *doc, int index) {
+close_tab(void) {
 	GtkWidget *scroll;
+	int index;
 
+	/* Since a keypress only works on the currently active
+	 * tab anyway, we might as well ask the index of the current
+	 * page here and use that, instead of passing the index as
+	 * a parameter.
+	 */
+	index = gtk_notebook_get_current_page(GTK_NOTEBOOK(lightpad->tabs));
 	scroll = gtk_notebook_get_nth_page(GTK_NOTEBOOK(lightpad->tabs), index);
 	gtk_widget_destroy(scroll); /* this destroys both scroll's child as its container */
 }
@@ -110,6 +115,20 @@ update_tab_label(Document *doc) {
 	basename = g_path_get_basename(doc->filename);
 	gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(lightpad->tabs), scroll, basename);
 	g_free(basename);
+}
+
+Document *
+get_active_document(void) {
+	GtkWidget *scroll;
+	Document *doc;
+	int index;
+
+	//FIXME: segfault when there is no scroll object
+	index = gtk_notebook_get_current_page(GTK_NOTEBOOK(lightpad->tabs));
+	scroll = gtk_notebook_get_nth_page(GTK_NOTEBOOK(lightpad->tabs), index);
+	doc = g_object_get_data(G_OBJECT(scroll), "doc");
+
+	return doc;
 }
 
 gboolean
@@ -191,6 +210,8 @@ read_config(const char *file) {
 int
 main(int argc, char **argv) {
 	GtkWidget *vbox;
+	GtkSourceLanguageManager *lm;
+	const char * const *languages;
 	const char *path;
 	char *file;
 
@@ -214,6 +235,15 @@ main(int argc, char **argv) {
 			"Lightpad text editor");
 	gtk_box_pack_start(GTK_BOX(vbox), lightpad->status, FALSE, TRUE, 0);
 
+	lm = gtk_source_language_manager_get_default();
+	languages = gtk_source_language_manager_get_language_ids(lm);
+	lightpad->combo = gtk_combo_box_text_new();
+	for(const char* const* i = languages; *i != NULL; ++i)
+		gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(lightpad->combo), *i, *i);
+	g_object_unref(lm);
+	gtk_box_pack_end(GTK_BOX(lightpad->status), lightpad->combo, FALSE, FALSE, 0);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(lightpad->combo), -1);
+
 	path = g_get_user_config_dir();
 	if(path == NULL)
 		error_dialog("Error: can not determine path to config directory!\nWill fallback to default settings\n");
@@ -230,6 +260,7 @@ main(int argc, char **argv) {
 	g_signal_connect(lightpad->window, "key-press-event", G_CALLBACK(on_keypress_window), NULL);
 	g_signal_connect(lightpad->tabs, "switch-page", G_CALLBACK(on_page_switch), NULL);
 	g_signal_connect(lightpad->tabs, "page-added", G_CALLBACK(on_page_added), NULL);
+	g_signal_connect(lightpad->combo, "changed", G_CALLBACK(on_lang_changed), NULL);
 
 	gtk_widget_show_all(lightpad->window);
 	gtk_main();

@@ -19,6 +19,7 @@
 
 #include <gtk/gtk.h>
 #include <glib/gprintf.h>
+#include <gtksourceview/gtksource.h>
 
 #include "lightpad.h"
 #include "document.h"
@@ -67,14 +68,7 @@ on_keypress_window(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
 		handled = gtk_window_activate_key(window, event);
 
 	/* we went up all the way, these bindings are set on the window */
-	GtkWidget *scroll;
-	Document *doc;
-	int index;
-
-	//FIXME: segfault when there is no scroll object
-	index = gtk_notebook_get_current_page(GTK_NOTEBOOK(lightpad->tabs));
-	scroll = gtk_notebook_get_nth_page(GTK_NOTEBOOK(lightpad->tabs), index);
-	doc = g_object_get_data(G_OBJECT(scroll), "doc");
+	Document *doc = get_active_document();
 
 	if(!handled && (event->state & GDK_CONTROL_MASK) == GDK_CONTROL_MASK) {
 		switch(event->keyval) {
@@ -90,7 +84,7 @@ on_keypress_window(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
 			case GDK_KEY_n:
 					new_view(FALSE); return TRUE; break;
 			case GDK_KEY_w:
-					close_tab(doc, index); return TRUE; break;
+					close_tab(); return TRUE; break;
 			case GDK_KEY_s:
 					save_to_file(doc, FALSE); return TRUE; break;
 			case GDK_KEY_S:
@@ -136,13 +130,42 @@ void
 on_page_switch(GtkNotebook *notebook, GtkWidget *page, guint page_num, gpointer user_data) {
 	Document *doc;
 	GtkWidget *scroll;
+	GtkTextBuffer *buffer;
+	GtkSourceLanguage *lang;
+	const char *id;
 
 	scroll = gtk_notebook_get_nth_page(notebook, page_num);
-	doc =  g_object_get_data(G_OBJECT(scroll), "doc");
+	doc = g_object_get_data(G_OBJECT(scroll), "doc");
 	reset_default_status(doc);
+
+	//FIXME: this calls on_lang_changed again which changes the language
+	/*buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(doc->view));
+	lang = gtk_source_buffer_get_language(GTK_SOURCE_BUFFER(buffer));
+	id = gtk_source_language_get_id(lang);
+	gtk_combo_box_set_active_id(GTK_COMBO_BOX(lightpad->combo), id);*/
 }
 
 void
 on_page_added(GtkNotebook *notebook, GtkWidget *child, guint page_num, gpointer user_data) {
 	gtk_notebook_set_current_page(notebook, page_num);
+}
+
+void
+on_lang_changed(GtkComboBox *widget, gpointer user_data) {
+	Document *doc;
+	GtkSourceLanguage *lang;
+	GtkSourceLanguageManager *lm;
+	char *id;
+
+	id = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(widget));
+	lm = gtk_source_language_manager_get_default();
+	lang = gtk_source_language_manager_get_language(lm, id);
+	//g_object_unref(lm);
+	g_free(id);
+
+	if(lang == NULL)
+		return;
+
+	doc = get_active_document();
+	set_language(doc, lang);
 }

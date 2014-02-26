@@ -22,3 +22,4 @@ gboolean on_keypress_window(GtkWidget *widget, GdkEventKey *event, gpointer user
 gboolean on_delete_window(GtkWidget *widget, GdkEvent *event, gpointer user_data);
 void on_page_switch(GtkNotebook *notebook, GtkWidget *page, guint page_num, gpointer user_data);
 void on_page_added(GtkNotebook *notebook, GtkWidget *child, guint page_num, gpointer user_data);
+void on_lang_changed(GtkComboBox *widget, gpointer user_data);

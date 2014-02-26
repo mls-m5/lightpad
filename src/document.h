@@ -19,5 +19,6 @@
 
 Document *create_new_doc(char *filename);
 void free_document(Document *doc);
-void set_language(Document *doc);
+GtkSourceLanguage *guess_language(Document *doc);
+void set_language(Document *doc, GtkSourceLanguage *lang);
 void insert_into_buffer(GtkWidget *view, char *content);

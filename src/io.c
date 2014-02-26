@@ -19,6 +19,7 @@
 
 #include <glib/gi18n.h>
 #include <gtk/gtk.h>
+#include <gtksourceview/gtksource.h>
 
 #include "lightpad.h"
 #include "document.h"
@@ -26,6 +27,7 @@
 void
 save_to_file(Document *doc, gboolean saveas) {
 	GtkWidget *dialog;
+	GtkSourceLanguage *lang;
 	GtkTextBuffer *buffer;
 	GtkTextIter start, end;
 	char *path = NULL;
@@ -58,7 +60,8 @@ save_to_file(Document *doc, gboolean saveas) {
 		basename = g_path_get_basename(path);
 		doc->filename = basename;
 		doc->new = FALSE;
-		set_language(doc);
+		lang = guess_language(doc);
+		set_language(doc, lang);
 		update_tab_label(doc);
 	} else
 		path = doc->filename;
@@ -107,6 +110,7 @@ open_get_filename(void) {
 void
 new_view(gboolean open_file) {
 	Document *new;
+	GtkSourceLanguage *lang;
 	char *filename = NULL;
 	char *status;
 	gsize length;
@@ -148,13 +152,15 @@ new_view(gboolean open_file) {
 		if(!(g_utf8_validate(contents, length, NULL))) {
 			error_dialog("Error: file contents were not utf-8\n");
 			g_free(contents);
-			//g_free(filename);
 			return; //FIXME: segfault
 		}
 
 		insert_into_buffer(new->view, contents);
 		g_free(contents);
 	}
+
+	lang = guess_language(new);
+	set_language(new, lang);
 
 	append_new_tab(new);
 	gtk_statusbar_pop(GTK_STATUSBAR(lightpad->status), lightpad->id);
@@ -163,6 +169,7 @@ new_view(gboolean open_file) {
 
 void
 insert_into_view(Document *doc) {
+	GtkSourceLanguage *lang;
 	char *filename = NULL;
 	char *contents = NULL;
 	char *status;
@@ -205,7 +212,8 @@ insert_into_view(Document *doc) {
 	if(doc->filename != NULL)
 		g_free(doc->filename);
 	doc->filename = g_strdup(filename);
-	set_language(doc);
+	lang = guess_language(doc);
+	set_language(doc, lang);
 	update_tab_label(doc);
 	reset_default_status(doc);
 	g_free(filename);

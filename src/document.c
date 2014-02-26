@@ -83,7 +83,7 @@ create_new_doc(char *filename) {
 		gtk_source_buffer_set_highlight_syntax(buffer, FALSE);
 		gtk_source_buffer_set_highlight_matching_brackets(buffer, FALSE);
 	}
-	set_language(new);
+
 	gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(new->view), settings->wrap_mode);
 	gtk_source_view_set_auto_indent(GTK_SOURCE_VIEW(new->view), settings->auto_indent);
 	gtk_source_view_set_indent_on_tab(GTK_SOURCE_VIEW(new->view), settings->indent_on_tab);
@@ -108,19 +108,19 @@ free_document(Document *doc) {
 	g_slice_free(Document, doc);
 }
 
-void
-set_language(Document *doc) {
+GtkSourceLanguage *
+guess_language(Document *doc) {
 	GtkTextBuffer *buffer;
-	GtkSourceLanguageManager *lm;
-	GtkSourceLanguage *lang = NULL;
 	GtkTextIter start, end;
+	GtkSourceLanguage *lang;
+	GtkSourceLanguageManager *lm;
 	gboolean result_uncertain;
 	char *content_type;
 	char *data;
 	gsize length;
 
 	if(doc->filename == NULL || strcmp(doc->filename, _("New file")) == 0)
-		return;
+		return NULL;
 
 	buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(doc->view));
 	gtk_text_buffer_get_start_iter(buffer, &start);
@@ -139,9 +139,20 @@ set_language(Document *doc) {
 
 	lm = gtk_source_language_manager_get_default();
 	lang = gtk_source_language_manager_guess_language(lm, doc->filename, content_type);
-	gtk_source_buffer_set_language(GTK_SOURCE_BUFFER(buffer), lang);
-
+	//g_object_unref(lm);
 	g_free(content_type);
+	return lang;
+}
+
+void
+set_language(Document *doc, GtkSourceLanguage *lang) {
+	GtkTextBuffer *buffer;
+	GtkSourceLanguage *oldlang = NULL;
+
+	buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(doc->view));
+	oldlang = gtk_source_buffer_get_language(GTK_SOURCE_BUFFER(buffer));
+	if(oldlang != lang)
+		gtk_source_buffer_set_language(GTK_SOURCE_BUFFER(buffer), lang);
 }
 
 void
