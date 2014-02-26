@@ -29,27 +29,27 @@
 
 /*
  * TODO:
- *   look into line marks
- *   open file dialog should start in current folder
- *   file saved/not saved indicator in tab label
- *   dont ask to save file when undoes have happened
- *   look more into signals
- *   expand statusbar
-       buttons to change settings
-         settings
-           syntax highlighting
-           tab size
-       row number
-       colom number
-     configuration à la gedit?
-       font
-       linebreak
-       dont split words on two rows
-       backup copy
-       auto-save every n minutes
+ * cancel button on save warning
+ * have sourceview grab focus
+ * reorderable tabs, both with mouse and keyboard
+ * look into line marks
+ * open file dialog should start in current folder
+ * file saved/not saved indicator in tab label
+ * dont ask to save file when undoes have happened
+ * look more into signals
+ * expand statusbar
+     buttons to change settings
+       settings
+         syntax highlighting
+         tab size
+     row number
+     colom number
+ * configuration à la gedit?
+     backup copy
+     auto-save every n minutes
  */
 
-void /*ToDo: transform this into a fancy GtkInfoBar */
+void /*TODO: transform this into a fancy GtkInfoBar */
 error_dialog(const char *message) {
 	GtkWidget *dialog;
 

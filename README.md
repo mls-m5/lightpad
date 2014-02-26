@@ -3,29 +3,23 @@ Lightpad
 
 **A simple editor, based on keyboard shortcuts**
 
+Lightpad is a simple text editor, based on a keyboard-based workflow: there are no graphical elements besides the tabs, the source view and the statusbar. This means that there are no buttons and menus and there never will be.
+
+Lightpad tries to stay compatible with GEdit shortcut-wise. To help you get going, [here][article] is a list of standard GtkSourceView key combinations as well as some GEdit specific onces. Of course, keyboard shortcuts for features Lightpad does not have are not implemented (such as spell checking and printing).
+
+[article]: http://hamwaves.com/gedit/en/index.html
+
 **Disclaimer:** this README is written with Lightpad! ;)
 
 Installation
 ------------
 
-The only dependency required to build and run Lightpad, is GTK3.
+The only dependencies required to build and run Lightpad, are GTK3 and GtkSourceView.
 
-Once the ridiculous amount of dependencies are installed, just run these commands to build and install Lightpad:
+Once the ridiculous amount of dependencies are installed, just run these commands to build and install Lightpad::
 
     $ make
     # make clean install
-
-Keyboard shortcuts
---------------------
-
-Lightpad is heavily based on a keyboard-based workflow: there are no graphical elements besides the tabs and the source view. To help you get going, there is a list
-of the standard GtkSourceview keyboard shortcuts and some Gedit-specific ones [here][article].
-
-
- [article]: http://hamwaves.com/gedit/en/index.html
-
-Obviously, Lightpad supports all of the standard GtkSourceView shortcuts. Lightpad also tries to stay compatible to Gedit, except for features Lightpad does not have of course
-(for example, spell checking and printing).
 
 Bugs
 ----
