@@ -32,7 +32,6 @@ save_to_file(Document *doc, gboolean saveas) {
 	GtkTextIter start, end;
 	char *path = NULL;
 	char *contents;
-	char *status;
 	char *basename;
 	gboolean result = FALSE;
 	GError *error = NULL;
@@ -66,11 +65,6 @@ save_to_file(Document *doc, gboolean saveas) {
 	} else
 		path = doc->filename;
 
-	status = g_strdup_printf("Saving %s...", path);
-	gtk_statusbar_push(GTK_STATUSBAR(lightpad->status), lightpad->id, status);
-	g_free(status);
-	//while(gtk_events_pending()) gtk_main_iteration();
-
 	buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(doc->view));
 	gtk_text_buffer_get_start_iter(GTK_TEXT_BUFFER(buffer), &start);
 	gtk_text_buffer_get_end_iter(GTK_TEXT_BUFFER(buffer), &end);
@@ -81,8 +75,6 @@ save_to_file(Document *doc, gboolean saveas) {
 	if(saveas || doc->new)
 		g_free(path);
 	g_free(contents);
-	gtk_statusbar_pop(GTK_STATUSBAR(lightpad->status), lightpad->id);
-	reset_default_status(doc);
 	if(!result) {
 		if(error) {
 			error_dialog(error->message);
@@ -112,7 +104,6 @@ new_view(gboolean open_file) {
 	Document *new;
 	GtkSourceLanguage *lang;
 	char *filename = NULL;
-	char *status;
 	gsize length;
 	gboolean result;
 	GError *error = NULL;
@@ -124,13 +115,7 @@ new_view(gboolean open_file) {
 			error_dialog("Error: filename is null\n");
 			return;
 		}
-		status = g_strdup_printf("Loading %s...", filename);
-	} else
-		status = g_strdup("Loading...");
-
-	gtk_statusbar_push(GTK_STATUSBAR(lightpad->status), lightpad->id, status);
-	g_free(status);
-	//while(gtk_events_pending()) gtk_main_iteration();
+	}
 
 	new = create_new_doc(filename);
 
@@ -163,8 +148,6 @@ new_view(gboolean open_file) {
 	set_language(new, lang);
 
 	append_new_tab(new);
-	gtk_statusbar_pop(GTK_STATUSBAR(lightpad->status), lightpad->id);
-	reset_default_status(new);
 }
 
 void
@@ -172,7 +155,6 @@ insert_into_view(Document *doc) {
 	GtkSourceLanguage *lang;
 	char *filename = NULL;
 	char *contents = NULL;
-	char *status;
 	gsize length;
 	gboolean result;
 	GError *error = NULL;
@@ -183,10 +165,6 @@ insert_into_view(Document *doc) {
 		error_dialog("Error: filename is null\n"); //FIXME: segfault
 		return;
 	}
-	status = g_strdup_printf("Loading %s...", filename);
-	gtk_statusbar_push(GTK_STATUSBAR(lightpad->status), lightpad->id, status);
-	g_free(status);
-	//while(gtk_events_pending()) gtk_main_iteration();
 
 	result = g_file_get_contents(filename, &contents, &length, &error);
 	if(!result) {
@@ -215,7 +193,6 @@ insert_into_view(Document *doc) {
 	lang = guess_language(doc);
 	set_language(doc, lang);
 	update_tab_label(doc);
-	reset_default_status(doc);
 	g_free(filename);
 	g_free(contents);
 }

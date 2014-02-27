@@ -29,22 +29,24 @@
 
 /*
  * TODO:
+ * have both the full path and the basename in the Document,
+   currently this is a mess
+ * maybe ditch update_tab_label?
+ * implement defaults for the settings
  * do something about all the language managers popping up everywhere,
-   maybe a global one?
- * cancel button on save warning
+     maybe a global one?
+ * cancel closing when save dialog closes
  * have sourceview grab focus
  * reorderable tabs with keyboard
  * look into line marks
  * open file dialog should start in current folder
  * file saved/not saved indicator in tab label
- * dont ask to save file when undoes have happened
+     "modified-changed" signal
+     "changed" signal
  * look more into signals
- * expand statusbar
-     row number
-     colom number
  * configuration à la gedit?
-     backup copy
-     auto-save every n minutes
+     backup copy?
+     auto-save every n minutes?
  */
 
 void /*TODO: transform this into a fancy GtkInfoBar */
@@ -90,17 +92,29 @@ append_new_tab(Document *doc) {
 
 void
 close_tab(void) {
+	Document *doc;
 	GtkWidget *scroll;
-	int index;
+	int index, save;
 
 	/* Since a keypress only works on the currently active
 	 * tab anyway, we might as well ask the index of the current
 	 * page here and use that, instead of passing the index as
 	 * a parameter.
+	 * Also, since we need both the GtkScrolledWindow and the Document
+	 * it is of no use to call get_active_document().
 	 */
 	index = gtk_notebook_get_current_page(GTK_NOTEBOOK(lightpad->tabs));
 	scroll = gtk_notebook_get_nth_page(GTK_NOTEBOOK(lightpad->tabs), index);
-	gtk_widget_destroy(scroll); /* this destroys both scroll's child as its container */
+	doc = g_object_get_data(G_OBJECT(scroll), "doc");
+	save = check_for_save(doc);
+	switch(save) {
+		case GTK_RESPONSE_YES:
+			save_to_file(doc, TRUE);
+		case GTK_RESPONSE_NO:
+			gtk_widget_destroy(scroll); /* this destroys both scroll's child as its container */
+			break;
+		default: break;
+	}
 }
 
 void
@@ -131,44 +145,34 @@ get_active_document(void) {
 	return doc;
 }
 
-gboolean
+int
 check_for_save(Document *doc) {
 	GtkTextBuffer *buffer;
-	gboolean save = FALSE;
+	int res;
 
 	buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(doc->view));
+	//FIXME: not sure if checking can_undo is the correct way to handle this
+	if(gtk_source_buffer_can_undo(GTK_SOURCE_BUFFER(buffer)) && gtk_text_buffer_get_modified(buffer)) {
+		GtkWidget *dlg;
+		char *msg;
 
-	if(gtk_text_buffer_get_modified(buffer) == TRUE) {
-		GtkWidget *dialog;
-		char *message;
-
-		message = g_strdup_printf(
+		msg = g_strdup_printf(
 				_("Do you want to save the changes in file '%s' before closing?\n"
 				"If you do not, the changes will be lost.\n"), doc->filename);
-		dialog = gtk_message_dialog_new(GTK_WINDOW(lightpad->window),
+		dlg = gtk_message_dialog_new(GTK_WINDOW(lightpad->window),
 				GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
-				GTK_MESSAGE_WARNING, GTK_BUTTONS_YES_NO,
+				GTK_MESSAGE_WARNING, GTK_BUTTONS_NONE,
 				message);
-		gtk_window_set_title(GTK_WINDOW(dialog), _("Save changes?"));
-		if(gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_YES)
-			save = TRUE;
-		gtk_widget_destroy(dialog);
-		g_free(message);
-	}     
+		gtk_window_set_title(GTK_WINDOW(dlg), _("Save changes?"));
+		gtk_dialog_add_buttons(GTK_DIALOG(dlg), _("Close without saving"), GTK_RESPONSE_NO,
+				_("Cancel"), GTK_RESPONSE_CANCEL, _("Save"), GTK_RESPONSE_YES, NULL);
+		gtk_dialog_set_default_response(GTK_DIALOG(dlg), GTK_RESPONSE_YES);
+		res = gtk_dialog_run(GTK_DIALOG(dlg));
+		gtk_widget_destroy(dlg);
+		g_free(msg);
+	}
 
-	return save;
-}
-
-void
-reset_default_status(Document *doc) {
-	char *status, *basename;
-
-	basename = g_path_get_basename(doc->filename);
-	status = g_strdup_printf(_("File: %s"), basename);
-	gtk_statusbar_pop(GTK_STATUSBAR(lightpad->status), lightpad->id);
-	gtk_statusbar_push(GTK_STATUSBAR(lightpad->status), lightpad->id, status);
-	g_free(basename);
-	g_free(status);
+	return res;
 }
 
 static void
@@ -210,19 +214,16 @@ read_config(const char *file) {
 int
 main(int argc, char **argv) {
 	GtkWidget *vbox;
-	GtkSourceLanguageManager *lm;
-	const char * const *languages;
 	const char *path;
 	char *file;
 
-	lightpad = g_slice_new0(Window);
-
 	gtk_init(&argc, &argv);
 
+	lightpad = g_slice_new0(Window);
 	lightpad->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_title(GTK_WINDOW(lightpad->window), "Lightpad");
 	gtk_window_set_default_icon_name("accessories-text-editor");
-	gtk_container_set_border_width(GTK_CONTAINER(lightpad->window), 2);
+	gtk_container_set_border_width(GTK_CONTAINER(lightpad->window), 0);
 
 	vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 	gtk_container_add(GTK_CONTAINER(lightpad->window), vbox);
@@ -230,19 +231,10 @@ main(int argc, char **argv) {
 	lightpad->tabs = gtk_notebook_new();
 	gtk_box_pack_start(GTK_BOX(vbox), lightpad->tabs, TRUE, TRUE, 0);
 
-	lightpad->status = gtk_statusbar_new();
-	lightpad->id = gtk_statusbar_get_context_id(GTK_STATUSBAR(lightpad->status),
-			"Lightpad text editor");
-	gtk_box_pack_start(GTK_BOX(vbox), lightpad->status, FALSE, TRUE, 0);
-
-	lm = gtk_source_language_manager_get_default();
-	languages = gtk_source_language_manager_get_language_ids(lm);
-	lightpad->combo = gtk_combo_box_text_new();
-	for(const char* const* i = languages; *i != NULL; ++i)
-		gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(lightpad->combo), *i, *i);
-	g_object_unref(lm);
-	gtk_box_pack_end(GTK_BOX(lightpad->status), lightpad->combo, FALSE, FALSE, 0);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(lightpad->combo), -1);
+	g_signal_connect(lightpad->window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
+	g_signal_connect(lightpad->window, "delete-event", G_CALLBACK(on_delete_window), NULL);
+	g_signal_connect(lightpad->window, "key-press-event", G_CALLBACK(on_keypress_window), NULL);
+	g_signal_connect(lightpad->tabs, "page-added", G_CALLBACK(on_page_added), NULL);
 
 	path = g_get_user_config_dir();
 	if(path == NULL)
@@ -255,18 +247,11 @@ main(int argc, char **argv) {
 	}
 	new_view(FALSE);
 
-	g_signal_connect(lightpad->window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
-	g_signal_connect(lightpad->window, "delete-event", G_CALLBACK(on_delete_window), NULL);
-	g_signal_connect(lightpad->window, "key-press-event", G_CALLBACK(on_keypress_window), NULL);
-	g_signal_connect(lightpad->tabs, "switch-page", G_CALLBACK(on_page_switch), NULL);
-	g_signal_connect(lightpad->tabs, "page-added", G_CALLBACK(on_page_added), NULL);
-	g_signal_connect(lightpad->combo, "changed", G_CALLBACK(on_lang_changed), NULL);
-
 	gtk_widget_show_all(lightpad->window);
 	gtk_main();
 
-	/* This will destroy all the childs, who in turn
-	 * will destroy their own childs et cetera.
+	/* This will destroy all the children, who in turn
+	 * will destroy their own children et cetera.
 	 * Thus, there is no need to explicitly destroy
 	 * all the GtkScrolledWindow objects */
 	gtk_widget_destroy(lightpad->window);

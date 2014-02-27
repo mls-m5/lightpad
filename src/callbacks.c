@@ -19,7 +19,6 @@
 
 #include <gtk/gtk.h>
 #include <glib/gprintf.h>
-#include <gtksourceview/gtksource.h>
 
 #include "lightpad.h"
 #include "document.h"
@@ -74,7 +73,7 @@ on_keypress_window(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
 		switch(event->keyval) {
 			case GDK_KEY_o:
 					if(doc->new) {
-						if(check_for_save(doc) == TRUE)
+						if(check_for_save(doc) == GTK_RESPONSE_YES)
 							save_to_file(doc, TRUE);
 						insert_into_view(doc);
 					} else
@@ -114,58 +113,23 @@ gboolean
 on_delete_window(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
 	Document *doc;
 	GtkWidget *scroll;
-	int pages;
+	int pages, save;
 
 	pages = gtk_notebook_get_n_pages(GTK_NOTEBOOK(lightpad->tabs));
 	for(int i = 0; i < pages; i++) {
 		scroll = gtk_notebook_get_nth_page(GTK_NOTEBOOK(lightpad->tabs), i);
 		doc = g_object_get_data(G_OBJECT(scroll), "doc");
-		if(check_for_save(doc) == TRUE)
-			save_to_file(doc, TRUE);
+		save = check_for_save(doc);
+		switch(save) {
+			case GTK_RESPONSE_YES: save_to_file(doc, TRUE); break;
+			case GTK_RESPONSE_NO: return TRUE; /* abort */
+			default: break;
+		}
 	}
 	return FALSE; /* propogate event */
 }
 
 void
-on_page_switch(GtkNotebook *notebook, GtkWidget *page, guint page_num, gpointer user_data) {
-	Document *doc;
-	GtkWidget *scroll;
-	GtkTextBuffer *buffer;
-	GtkSourceLanguage *lang;
-	const char *id;
-
-	scroll = gtk_notebook_get_nth_page(notebook, page_num);
-	doc = g_object_get_data(G_OBJECT(scroll), "doc");
-	reset_default_status(doc);
-
-	//FIXME: this calls on_lang_changed again which changes the language
-	/*buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(doc->view));
-	lang = gtk_source_buffer_get_language(GTK_SOURCE_BUFFER(buffer));
-	id = gtk_source_language_get_id(lang);
-	gtk_combo_box_set_active_id(GTK_COMBO_BOX(lightpad->combo), id);*/
-}
-
-void
 on_page_added(GtkNotebook *notebook, GtkWidget *child, guint page_num, gpointer user_data) {
 	gtk_notebook_set_current_page(notebook, page_num);
-}
-
-void
-on_lang_changed(GtkComboBox *widget, gpointer user_data) {
-	Document *doc;
-	GtkSourceLanguage *lang;
-	GtkSourceLanguageManager *lm;
-	char *id;
-
-	id = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(widget));
-	lm = gtk_source_language_manager_get_default();
-	lang = gtk_source_language_manager_get_language(lm, id);
-	//g_object_unref(lm);
-	g_free(id);
-
-	if(lang == NULL)
-		return;
-
-	doc = get_active_document();
-	set_language(doc, lang);
 }

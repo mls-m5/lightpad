@@ -45,9 +45,6 @@ typedef struct {
 typedef struct {
 	GtkWidget *window;
 	GtkWidget *tabs;
-	GtkWidget *status;
-	GtkWidget *combo;
-	guint id;
 } Window;
 
 void error_dialog(const char *message);
@@ -55,8 +52,7 @@ void append_new_tab(Document *doc);
 void close_tab(void);
 void update_tab_label(Document *doc);
 Document *get_active_document(void);
-gboolean check_for_save(Document *doc);
-void reset_default_status(Document *doc);
+int check_for_save(Document *doc);
 
 Window *lightpad;
 Settings *settings;

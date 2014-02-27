@@ -17,6 +17,8 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <gtksourceview/gtksource.h>
+
 Document *create_new_doc(char *filename);
 void free_document(Document *doc);
 GtkSourceLanguage *guess_language(Document *doc);

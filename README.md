@@ -16,7 +16,7 @@ Installation
 
 The only dependencies required to build and run Lightpad, are GTK3 and GtkSourceView.
 
-Once the ridiculous amount of dependencies are installed, just run these commands to build and install Lightpad::
+Once the ridiculous amount of dependencies are installed, just run these commands to build and install Lightpad:
 
     $ make
     # make clean install
@@ -39,7 +39,4 @@ You should have received a copy of the GNU General Public License along with thi
 
 **Copyright © 2014** Jente Hidskes <hjdskes@gmail.com>
 
-Some code is based on/copied from the TutorialTextEditor. These parts are licensed under the GPLv2 license.
-**Copyright © 2007** Micah Carrick <email@micahcarrick.com>
-
-Another great help at things I could not figure out myself has been Olivier Brunel - thank you for your help!
+A great help at things I could not figure out myself has been Olivier Brunel - thank you for your help!
