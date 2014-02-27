@@ -29,10 +29,7 @@
 
 /*
  * TODO:
- * maybe ditch update_tab_label?
  * implement defaults for the settings
- * do something about all the language managers popping up everywhere,
-     maybe a global one?
  * cancel closing when save dialog closes
  * have sourceview grab focus
  * reorderable tabs with keyboard
@@ -222,6 +219,7 @@ main(int argc, char **argv) {
 	gtk_container_add(GTK_CONTAINER(lightpad->window), vbox);
 
 	lightpad->tabs = gtk_notebook_new();
+	gtk_notebook_set_scrollable(GTK_NOTEBOOK(lightpad->tabs), TRUE);
 	gtk_box_pack_start(GTK_BOX(vbox), lightpad->tabs, TRUE, TRUE, 0);
 
 	g_signal_connect(lightpad->window, "destroy", G_CALLBACK(gtk_main_quit), NULL);

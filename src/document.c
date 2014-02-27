@@ -142,7 +142,6 @@ guess_language(Document *doc) {
 
 	lm = gtk_source_language_manager_get_default();
 	lang = gtk_source_language_manager_guess_language(lm, doc->filename, content_type);
-	//g_object_unref(lm);
 	g_free(content_type);
 	return lang;
 }
