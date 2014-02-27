@@ -157,12 +157,13 @@ check_for_save(Document *doc) {
 		char *msg;
 
 		msg = g_strdup_printf(
-				_("Do you want to save the changes in file '%s' before closing?\n"
-				"If you do not, the changes will be lost.\n"), doc->filename);
+				_("Do you want to save the changes in file '%s' before closing?\n"),
+				doc->filename);
 		dlg = gtk_message_dialog_new(GTK_WINDOW(lightpad->window),
 				GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
-				GTK_MESSAGE_WARNING, GTK_BUTTONS_NONE,
-				message);
+				GTK_MESSAGE_WARNING, GTK_BUTTONS_NONE, msg);
+		gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(dlg),
+				_("If you do not, the changes will be lost.\n"));
 		gtk_window_set_title(GTK_WINDOW(dlg), _("Save changes?"));
 		gtk_dialog_add_buttons(GTK_DIALOG(dlg), _("Close without saving"), GTK_RESPONSE_NO,
 				_("Cancel"), GTK_RESPONSE_CANCEL, _("Save"), GTK_RESPONSE_YES, NULL);
@@ -253,7 +254,8 @@ main(int argc, char **argv) {
 	/* This will destroy all the children, who in turn
 	 * will destroy their own children et cetera.
 	 * Thus, there is no need to explicitly destroy
-	 * all the GtkScrolledWindow objects */
+	 * all the GtkScrolledWindow objects
+	 */
 	gtk_widget_destroy(lightpad->window);
 	g_slice_free(Window, lightpad);
 	g_free((gpointer)settings->font);

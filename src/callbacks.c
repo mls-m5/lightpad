@@ -73,8 +73,12 @@ on_keypress_window(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
 		switch(event->keyval) {
 			case GDK_KEY_o:
 					if(doc->new) {
-						if(check_for_save(doc) == GTK_RESPONSE_YES)
+						int save;
+						save = check_for_save(doc);
+						if(save == GTK_RESPONSE_YES)
 							save_to_file(doc, TRUE);
+						else if(save == GTK_RESPONSE_CANCEL)
+							return TRUE;
 						insert_into_view(doc);
 					} else
 						new_view(TRUE);
@@ -109,7 +113,7 @@ on_keypress_window(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
  * they exit the application. From the "delete-event" signal, we can choose to
  * effectively cancel the close based on the value we return.
  */
-gboolean 
+gboolean
 on_delete_window(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
 	Document *doc;
 	GtkWidget *scroll;
@@ -122,7 +126,7 @@ on_delete_window(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
 		save = check_for_save(doc);
 		switch(save) {
 			case GTK_RESPONSE_YES: save_to_file(doc, TRUE); break;
-			case GTK_RESPONSE_NO: return TRUE; /* abort */
+			case GTK_RESPONSE_CANCEL: return TRUE; /* abort */
 			default: break;
 		}
 	}
