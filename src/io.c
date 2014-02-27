@@ -30,9 +30,8 @@ save_to_file(Document *doc, gboolean saveas) {
 	GtkSourceLanguage *lang;
 	GtkTextBuffer *buffer;
 	GtkTextIter start, end;
-	char *path = NULL;
+	char *filename = NULL;
 	char *contents;
-	char *basename;
 	gboolean result = FALSE;
 	GError *error = NULL;
 
@@ -44,26 +43,26 @@ save_to_file(Document *doc, gboolean saveas) {
 		gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dialog), TRUE);
 
 		if(saveas)
-			gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(dialog), doc->filename);
+			gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(dialog), doc->basename);
 		else
 			gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dialog), _("Untitled document"));
 
 		if(gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT)
-			path = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+			filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 		gtk_widget_destroy(dialog);
-		if(path == NULL)
+		if(filename == NULL)
 			return;
 
-		if(doc->filename != NULL)
-			g_free(doc->filename);
-		basename = g_path_get_basename(path);
-		doc->filename = basename;
 		doc->new = FALSE;
+		g_free(doc->basename);
+		doc->basename = g_path_get_basename(filename);
+		g_free(doc->filename);
+		doc->filename = g_strdup(filename);
 		lang = guess_language(doc);
 		set_language(doc, lang);
 		update_tab_label(doc);
 	} else
-		path = doc->filename;
+		filename = doc->filename;
 
 	buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(doc->view));
 	gtk_text_buffer_get_start_iter(GTK_TEXT_BUFFER(buffer), &start);
@@ -71,9 +70,9 @@ save_to_file(Document *doc, gboolean saveas) {
 	contents = gtk_text_buffer_get_text(GTK_TEXT_BUFFER(buffer), &start, &end, FALSE);       
 	gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(buffer), FALSE);
 
-	result = g_file_set_contents(path, contents, -1, &error);
+	result = g_file_set_contents(filename, contents, -1, &error);
 	if(saveas || doc->new)
-		g_free(path);
+		g_free(filename);
 	g_free(contents);
 	if(!result) {
 		if(error) {
@@ -153,8 +152,8 @@ new_view(gboolean open_file) {
 void
 insert_into_view(Document *doc) {
 	GtkSourceLanguage *lang;
-	char *filename = NULL;
-	char *contents = NULL;
+	char *filename;
+	char *contents;
 	gsize length;
 	gboolean result;
 	GError *error = NULL;
@@ -187,8 +186,9 @@ insert_into_view(Document *doc) {
 	insert_into_buffer(doc->view, contents);
 
 	doc->new = FALSE;
-	if(doc->filename != NULL)
-		g_free(doc->filename);
+	g_free(doc->basename);
+	doc->basename = g_path_get_basename(filename);
+	g_free(doc->filename);
 	doc->filename = g_strdup(filename);
 	lang = guess_language(doc);
 	set_language(doc, lang);

@@ -29,8 +29,6 @@
 
 /*
  * TODO:
- * have both the full path and the basename in the Document,
-   currently this is a mess
  * maybe ditch update_tab_label?
  * implement defaults for the settings
  * do something about all the language managers popping up everywhere,
@@ -66,11 +64,8 @@ error_dialog(const char *message) {
 void
 append_new_tab(Document *doc) {
 	GtkWidget *scroll, *label;
-	char *basename;
 
-	basename = g_path_get_basename(doc->filename);
-	label = gtk_label_new(basename);
-	g_free(basename);
+	label = gtk_label_new(doc->basename);
 
 	scroll = gtk_scrolled_window_new(NULL, NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll), GTK_POLICY_AUTOMATIC,
@@ -120,15 +115,12 @@ close_tab(void) {
 void
 update_tab_label(Document *doc) {
 	GtkWidget *scroll;
-	char *basename;
 	int index;
 
 	index = gtk_notebook_get_current_page(GTK_NOTEBOOK(lightpad->tabs));
 	scroll = gtk_notebook_get_nth_page(GTK_NOTEBOOK(lightpad->tabs), index);
 
-	basename = g_path_get_basename(doc->filename);
-	gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(lightpad->tabs), scroll, basename);
-	g_free(basename);
+	gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(lightpad->tabs), scroll, doc->basename);
 }
 
 Document *
@@ -148,7 +140,7 @@ get_active_document(void) {
 int
 check_for_save(Document *doc) {
 	GtkTextBuffer *buffer;
-	int res;
+	int res = 0;
 
 	buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(doc->view));
 	//FIXME: not sure if checking can_undo is the correct way to handle this
@@ -158,7 +150,7 @@ check_for_save(Document *doc) {
 
 		msg = g_strdup_printf(
 				_("Do you want to save the changes in file '%s' before closing?\n"),
-				doc->filename);
+				doc->basename);
 		dlg = gtk_message_dialog_new(GTK_WINDOW(lightpad->window),
 				GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
 				GTK_MESSAGE_WARNING, GTK_BUTTONS_NONE, msg);

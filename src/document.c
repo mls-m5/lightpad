@@ -58,9 +58,11 @@ create_new_doc(char *filename) {
 
 	new = g_slice_new0(Document);
 	if(filename != NULL) {
+		new->basename = g_path_get_basename(filename);
 		new->filename = g_strdup(filename);
 		new->new = FALSE;
 	} else {
+		new->basename = g_strdup(_("New file"));
 		new->filename = g_strdup(_("New file"));
 		new->new = TRUE;
 	}
@@ -104,6 +106,7 @@ create_new_doc(char *filename) {
 void
 free_document(Document *doc) {
 	/*the view is automatically freed by destroying its container */
+	g_free(doc->basename);
 	g_free(doc->filename);
 	g_slice_free(Document, doc);
 }
