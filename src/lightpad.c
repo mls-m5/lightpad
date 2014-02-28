@@ -100,7 +100,7 @@ close_tab(void) {
 		case GTK_RESPONSE_YES:
 			save_to_file(doc, TRUE);
 		case GTK_RESPONSE_NO:
-			gtk_widget_destroy(scroll); /* this destroys both scroll's child as its container */
+			gtk_widget_destroy(scroll); /* this destroys both scroll's child and its container */
 			break;
 		default: break;
 	}

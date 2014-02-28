@@ -165,12 +165,14 @@ insert_into_buffer(GtkWidget *view, char *contents) {
 	GtkTextBuffer *buffer;
 	GtkTextIter iter;
 
+	if(contents == NULL) {
+		error_dialog("Error: can not insert file into the buffer! The file contents are null\n");		
+		return;
+	}
+
 	buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(view));
 	gtk_source_buffer_begin_not_undoable_action(GTK_SOURCE_BUFFER(buffer));
-	if(contents != NULL)
-		gtk_text_buffer_set_text(buffer, contents, -1);
-	else
-		error_dialog("Error: can not insert file into the buffer! The file contents are null\n");
+	gtk_text_buffer_set_text(buffer, contents, -1);
 	gtk_source_buffer_end_not_undoable_action(GTK_SOURCE_BUFFER(buffer));
 
 	/* move cursor to the beginning */
