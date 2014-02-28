@@ -83,7 +83,7 @@ void
 close_tab(void) {
 	Document *doc;
 	GtkWidget *scroll;
-	int index, save;
+	int index;
 
 	/* Since a keypress only works on the currently active
 	 * tab anyway, we might as well ask the index of the current
@@ -95,16 +95,17 @@ close_tab(void) {
 	index = gtk_notebook_get_current_page(GTK_NOTEBOOK(lightpad->tabs));
 	scroll = gtk_notebook_get_nth_page(GTK_NOTEBOOK(lightpad->tabs), index);
 	doc = g_object_get_data(G_OBJECT(scroll), "doc");
-	save = check_for_save(doc);
-	switch(save) {
-		case GTK_RESPONSE_YES:
-			if(save_to_file(doc, TRUE) < 0)
-				break;
-		case GTK_RESPONSE_NO:
-			gtk_widget_destroy(scroll); /* this destroys both scroll's child and its container */
-			break;
-		default: break;
+	if(doc->modified) {
+		int save = check_for_save(doc);
+		switch(save) {
+			case GTK_RESPONSE_YES:
+				if(save_to_file(doc, TRUE) < 0)
+					return;
+			case GTK_RESPONSE_NO: break;
+			default: return;
+		}
 	}
+	gtk_widget_destroy(scroll); /* this destroys both scroll's child and its container */
 }
 
 Document *
