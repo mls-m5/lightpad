@@ -17,7 +17,7 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-void save_to_file(Document *doc, gboolean saveas);
+int save_to_file(Document *doc, gboolean saveas);
 char *open_get_filename(void);
-void new_view(gboolean existing);
-void insert_into_view(Document *doc);
+void new_view(const char *filename);
+void insert_into_view(Document *doc, const char *filename);

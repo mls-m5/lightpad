@@ -52,7 +52,6 @@ typedef struct {
 void error_dialog(const char *message);
 void append_new_tab(Document *doc);
 void close_tab(void);
-void update_tab_label(Document *doc);
 Document *get_active_document(void);
 int check_for_save(Document *doc);
 

@@ -29,10 +29,11 @@
 
 /*
  * TODO:
+ * abort opening new tab if open dialog closes
  * implement defaults for the settings
- * cancel closing when save dialog closes
  * have sourceview grab focus
  * reorderable tabs with keyboard
+     gtk_notebook_reorder_child
  * look into line marks
  * open file dialog should start in current folder
  * look more into signals
@@ -98,29 +99,13 @@ close_tab(void) {
 	save = check_for_save(doc);
 	switch(save) {
 		case GTK_RESPONSE_YES:
-			save_to_file(doc, TRUE);
+			if(save_to_file(doc, TRUE) < 0)
+				break;
 		case GTK_RESPONSE_NO:
 			gtk_widget_destroy(scroll); /* this destroys both scroll's child and its container */
 			break;
 		default: break;
 	}
-}
-
-void
-update_tab_label(Document *doc) {
-	GtkWidget *scroll;
-	char *title;
-	int index;
-
-	index = gtk_notebook_get_current_page(GTK_NOTEBOOK(lightpad->tabs));
-	scroll = gtk_notebook_get_nth_page(GTK_NOTEBOOK(lightpad->tabs), index);
-
-	if(doc->modified)
-		title = g_strdup_printf("%s%s", "*", doc->basename);
-	else
-		title = g_strdup(doc->basename);
-	gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(lightpad->tabs), scroll, title);
-	g_free(title);
 }
 
 Document *
@@ -236,7 +221,7 @@ main(int argc, char **argv) {
 		read_config(file);
 		g_free(file);
 	}
-	new_view(FALSE);
+	new_view(NULL);
 
 	gtk_widget_show_all(lightpad->window);
 	gtk_main();

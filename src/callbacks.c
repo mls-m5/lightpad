@@ -68,38 +68,35 @@ on_keypress_window(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
 
 	/* we went up all the way, these bindings are set on the window */
 	Document *doc = get_active_document();
+	char *filename;
 
 	if(!handled && (event->state & GDK_CONTROL_MASK) == GDK_CONTROL_MASK) {
 		switch(event->keyval) {
 			case GDK_KEY_o:
-					if(doc->new) {
-						int save;
-						save = check_for_save(doc);
-						if(save == GTK_RESPONSE_YES)
-							save_to_file(doc, TRUE);
-						else if(save == GTK_RESPONSE_CANCEL)
-							return TRUE;
-						insert_into_view(doc);
-					} else
-						new_view(TRUE);
-					return TRUE; break;
+					filename = open_get_filename();
+					if(doc->new && !doc->modified)
+						insert_into_view(doc, filename); //FIXME: segfault if filename == NULL
+					else
+						new_view(filename);
+					g_free(filename);
+					return TRUE;
 			case GDK_KEY_t:
 			case GDK_KEY_n:
-					new_view(FALSE); return TRUE; break;
+					new_view(NULL); return TRUE;
 			case GDK_KEY_w:
-					close_tab(); return TRUE; break;
+					close_tab(); return TRUE;
 			case GDK_KEY_s:
-					save_to_file(doc, FALSE); return TRUE; break;
+					save_to_file(doc, FALSE); return TRUE;
 			case GDK_KEY_S:
-					save_to_file(doc, TRUE); return TRUE; break;
+					save_to_file(doc, TRUE); return TRUE;
 			case GDK_KEY_r:
-					/*reload_file();*/; return TRUE; break;
+					/*reload_file();*/; return TRUE;
 			case GDK_KEY_q:
-					gtk_main_quit(); return TRUE; break;
+					gtk_main_quit(); return TRUE;
 			case GDK_KEY_Tab: //FIXME: not working
-					gtk_notebook_next_page(GTK_NOTEBOOK(lightpad->tabs)); return TRUE; break;
+					gtk_notebook_next_page(GTK_NOTEBOOK(lightpad->tabs)); return TRUE;
 			case GDK_KEY_ISO_Left_Tab: //FIXME: not working
-					gtk_notebook_prev_page(GTK_NOTEBOOK(lightpad->tabs)); return TRUE; break;
+					gtk_notebook_prev_page(GTK_NOTEBOOK(lightpad->tabs)); return TRUE;
 			default: break;
 		}
 	}
@@ -125,7 +122,8 @@ on_delete_window(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
 		doc = g_object_get_data(G_OBJECT(scroll), "doc");
 		save = check_for_save(doc);
 		switch(save) {
-			case GTK_RESPONSE_YES: save_to_file(doc, TRUE); break;
+			case GTK_RESPONSE_YES:
+				if(save_to_file(doc, TRUE) < 0) break;
 			case GTK_RESPONSE_CANCEL: return TRUE; /* abort */
 			default: break;
 		}
@@ -141,7 +139,19 @@ on_page_added(GtkNotebook *notebook, GtkWidget *child, guint page_num, gpointer 
 void
 on_modified_buffer(GtkTextBuffer *buffer, gpointer user_data) {
 	Document *doc = (Document *)user_data;
+	GtkWidget *scroll;
+	char *title;
+	int index;
 
 	doc->modified = !doc->modified;
-	update_tab_label(doc);
+
+	index = gtk_notebook_get_current_page(GTK_NOTEBOOK(lightpad->tabs));
+	scroll = gtk_notebook_get_nth_page(GTK_NOTEBOOK(lightpad->tabs), index);
+
+	if(doc->modified)
+		title = g_strdup_printf("%s%s", "*", doc->basename);
+	else
+		title = g_strdup(doc->basename);
+	gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(lightpad->tabs), scroll, title);
+	g_free(title);
 }

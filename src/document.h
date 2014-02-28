@@ -19,7 +19,7 @@
 
 #include <gtksourceview/gtksource.h>
 
-Document *create_new_doc(char *filename);
+Document *create_new_doc(const char *filename);
 void free_document(Document *doc);
 GtkSourceLanguage *guess_language(Document *doc);
 void set_language(Document *doc, GtkSourceLanguage *lang);

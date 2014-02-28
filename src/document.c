@@ -50,7 +50,7 @@ get_style_scheme(void) {
 }
 
 Document *
-create_new_doc(char *filename) {
+create_new_doc(const char *filename) {
 	Document *new;
 	GtkSourceBuffer *buffer;
 	GtkSourceStyleScheme *scheme;

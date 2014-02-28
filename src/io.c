@@ -23,8 +23,9 @@
 
 #include "lightpad.h"
 #include "document.h"
+#include "io.h"
 
-void
+int
 save_to_file(Document *doc, gboolean saveas) {
 	GtkWidget *dialog;
 	GtkSourceLanguage *lang;
@@ -51,16 +52,16 @@ save_to_file(Document *doc, gboolean saveas) {
 			filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 		gtk_widget_destroy(dialog);
 		if(filename == NULL)
-			return;
+			return -1;
 
 		doc->new = FALSE;
 		g_free(doc->basename);
 		doc->basename = g_path_get_basename(filename);
 		g_free(doc->filename);
 		doc->filename = g_strdup(filename);
+
 		lang = guess_language(doc);
 		set_language(doc, lang);
-		update_tab_label(doc);
 	} else
 		filename = doc->filename;
 
@@ -80,9 +81,10 @@ save_to_file(Document *doc, gboolean saveas) {
 			g_error_free(error);
 		} else
 			error_dialog("Error: cannot save to file. Something went wrong\n");
-		return;
+		return -2;
 	}
 	gtk_text_buffer_set_modified(buffer, FALSE);
+	return 0;
 }
 
 char *
@@ -100,66 +102,22 @@ open_get_filename(void) {
 }
 
 void
-new_view(gboolean open_file) {
+new_view(const char *filename) {
 	Document *new;
-	GtkSourceLanguage *lang;
-	char *filename = NULL;
-	gsize length;
-	gboolean result;
-	GError *error = NULL;
-
-	if(open_file) {
-		filename = open_get_filename();
-
-		if(filename == NULL) {
-			error_dialog("Error: filename is null\n");
-			return;
-		}
-	}
 
 	new = create_new_doc(filename);
-
-	if(open_file && filename != NULL) {
-		char *contents = NULL;
-
-		result = g_file_get_contents(filename, &contents, &length, &error);
-		g_free(filename);
-		if(!result) {
-			if(error) {
-				error_dialog(error->message);
-				g_error_free(error);
-			} else
-				error_dialog("Error: cannot read file\n");
-			free_document(new);
-			return;
-		}
-
-		if(!(g_utf8_validate(contents, length, NULL))) {
-			error_dialog("Error: file contents were not utf-8\n");
-			g_free(contents);
-			return; //FIXME: segfault
-		}
-
-		insert_into_buffer(new->view, contents);
-		g_free(contents);
-	}
-
-	lang = guess_language(new);
-	set_language(new, lang);
-
 	append_new_tab(new);
+	if(filename != NULL)
+		insert_into_view(new, filename);
 }
 
 void
-insert_into_view(Document *doc) {
+insert_into_view(Document *doc, const char *filename) {
 	GtkSourceLanguage *lang;
-	char *filename;
 	char *contents;
 	gsize length;
 	gboolean result;
 	GError *error = NULL;
-
-	filename = open_get_filename();
 
 	if(filename == NULL) {
 		error_dialog("Error: filename is null\n"); //FIXME: segfault
@@ -173,27 +131,25 @@ insert_into_view(Document *doc) {
 			g_error_free(error);
 		} else
 			error_dialog("Error: cannot read file\n");
-		g_free(filename);
 		return;
 	}
 
+	//FIXME: keep?
 	if(!(g_utf8_validate(contents, length, NULL))) {
-		error_dialog("Error: file contents were not utf-8\n");
+		error_dialog("Error: file contents were not utf-8\n"); //FIXME: segfault
 		g_free(contents);
-		g_free(filename);
 		return;
 	}
-
-	insert_into_buffer(doc->view, contents);
 
 	doc->new = FALSE;
 	g_free(doc->basename);
 	doc->basename = g_path_get_basename(filename);
 	g_free(doc->filename);
 	doc->filename = g_strdup(filename);
+
+	insert_into_buffer(doc->view, contents);
+	g_free(contents);
+
 	lang = guess_language(doc);
 	set_language(doc, lang);
-	update_tab_label(doc);
-	g_free(filename);
-	g_free(contents);
 }
