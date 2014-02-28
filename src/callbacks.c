@@ -73,12 +73,13 @@ on_keypress_window(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
 	if(!handled && (event->state & GDK_CONTROL_MASK) == GDK_CONTROL_MASK) {
 		switch(event->keyval) {
 			case GDK_KEY_o:
-					filename = open_get_filename();
-					if(doc->new && !doc->modified)
-						insert_into_view(doc, filename); //FIXME: segfault if filename == NULL
-					else
-						new_view(filename);
-					g_free(filename);
+					if(open_get_filename(&filename) == GTK_RESPONSE_ACCEPT) {
+						if(doc->new && !doc->modified)
+							insert_into_view(doc, filename); //FIXME: segfault if filename == NULL
+						else
+							new_view(filename);
+						g_free(filename);
+					}
 					return TRUE;
 			case GDK_KEY_t:
 			case GDK_KEY_n:

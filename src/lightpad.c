@@ -29,7 +29,6 @@
 
 /*
  * TODO:
- * abort opening new tab if open dialog closes
  * implement defaults for the settings
  * have sourceview grab focus
  * reorderable tabs with keyboard

@@ -87,18 +87,19 @@ save_to_file(Document *doc, gboolean saveas) {
 	return 0;
 }
 
-char *
-open_get_filename(void) {
+int
+open_get_filename(char **filename) {
 	GtkWidget *dialog;
-	char *filename = NULL;
+	int res;
 
 	dialog = gtk_file_chooser_dialog_new(_("Open File"), GTK_WINDOW(lightpad->window),
 			GTK_FILE_CHOOSER_ACTION_OPEN, _("_Cancel"), GTK_RESPONSE_CANCEL,
 			_("_Open"), GTK_RESPONSE_ACCEPT, NULL);
-	if(gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT)
-		filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+	res = gtk_dialog_run(GTK_DIALOG(dialog));
+	if(res == GTK_RESPONSE_ACCEPT)
+		*filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
 	gtk_widget_destroy(dialog);
-	return filename;
+	return res;
 }
 
 void
