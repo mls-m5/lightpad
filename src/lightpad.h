@@ -22,6 +22,7 @@ typedef struct {
 	char *basename; /* only the name of the document, e.g. /home/foo/bar.txt will be bar.txt */
 	char *filename; /* the whole path, so /home/foo/bar.txt */
 	gboolean new;
+	gboolean modified;
 } Document;
 
 typedef struct {

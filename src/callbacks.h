@@ -21,3 +21,4 @@ gboolean on_keypress_view(GtkWidget *widget, GdkEventKey *event, gpointer user_d
 gboolean on_keypress_window(GtkWidget *widget, GdkEventKey *event, gpointer user_data);
 gboolean on_delete_window(GtkWidget *widget, GdkEvent *event, gpointer user_data);
 void on_page_added(GtkNotebook *notebook, GtkWidget *child, guint page_num, gpointer user_data);
+void on_modified_buffer(GtkTextBuffer *buffer, gpointer user_data);

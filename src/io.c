@@ -82,6 +82,7 @@ save_to_file(Document *doc, gboolean saveas) {
 			error_dialog("Error: cannot save to file. Something went wrong\n");
 		return;
 	}
+	doc->modified = FALSE;
 }
 
 char *

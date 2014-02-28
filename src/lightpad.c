@@ -35,9 +35,6 @@
  * reorderable tabs with keyboard
  * look into line marks
  * open file dialog should start in current folder
- * file saved/not saved indicator in tab label
-     "modified-changed" signal
-     "changed" signal
  * look more into signals
  * configuration à la gedit?
      backup copy?
@@ -112,12 +109,18 @@ close_tab(void) {
 void
 update_tab_label(Document *doc) {
 	GtkWidget *scroll;
+	char *title;
 	int index;
 
 	index = gtk_notebook_get_current_page(GTK_NOTEBOOK(lightpad->tabs));
 	scroll = gtk_notebook_get_nth_page(GTK_NOTEBOOK(lightpad->tabs), index);
 
-	gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(lightpad->tabs), scroll, doc->basename);
+	if(doc->modified)
+		title = g_strdup_printf("%s%s", "*", doc->basename);
+	else
+		title = g_strdup(doc->basename);
+	gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(lightpad->tabs), scroll, title);
+	g_free(title);
 }
 
 Document *
@@ -136,12 +139,9 @@ get_active_document(void) {
 
 int
 check_for_save(Document *doc) {
-	GtkTextBuffer *buffer;
 	int res = 0;
 
-	buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(doc->view));
-	//FIXME: not sure if checking can_undo is the correct way to handle this
-	if(gtk_source_buffer_can_undo(GTK_SOURCE_BUFFER(buffer)) && gtk_text_buffer_get_modified(buffer)) {
+	if(doc->modified) {
 		GtkWidget *dlg;
 		char *msg;
 

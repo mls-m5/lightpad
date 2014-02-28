@@ -66,8 +66,10 @@ create_new_doc(char *filename) {
 		new->filename = g_strdup(_("New file"));
 		new->new = TRUE;
 	}
+	new->modified = FALSE;
 	buffer = gtk_source_buffer_new(NULL);
 	new->view = gtk_source_view_new_with_buffer(buffer);
+	g_signal_connect(buffer, "modified-changed", G_CALLBACK(on_modified_buffer), new);
 	g_signal_connect(new->view, "key-press-event", G_CALLBACK(on_keypress_view), NULL);
 
 	/* font, style scheme, etc */
@@ -100,6 +102,7 @@ create_new_doc(char *filename) {
 	}
 	gtk_source_view_set_tab_width(GTK_SOURCE_VIEW(new->view), settings->tab_width);
 	gtk_source_view_set_draw_spaces(GTK_SOURCE_VIEW(new->view), settings->draw_spaces);
+
 	return new;
 }
 

@@ -137,3 +137,11 @@ void
 on_page_added(GtkNotebook *notebook, GtkWidget *child, guint page_num, gpointer user_data) {
 	gtk_notebook_set_current_page(notebook, page_num);
 }
+
+void
+on_modified_buffer(GtkTextBuffer *buffer, gpointer user_data) {
+	Document *doc = (Document *)user_data;
+
+	doc->modified = !doc->modified;
+	update_tab_label(doc);
+}
