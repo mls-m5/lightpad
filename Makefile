@@ -26,7 +26,7 @@ install:
 	mkdir -p $(DESTDIR)$(BINPREFIX)
 	mkdir -p $(DESTDIR)/etc/xdg/$(PROG)/
 	mkdir -p $(DESTDIR)/usr/share/applications/
-	install -m 0755 src/$(PROG) $(DESTDIR)/$(BINPREFIX)/
+	install -m 0755 $(PROG) $(DESTDIR)$(BINPREFIX)
 	install -m 0644 data/$(PROG).cfg $(DESTDIR)/etc/xdg/$(PROG)/
 	install -m 0644 data/$(PROG).desktop $(DESTDIR)/usr/share/applications/
 
