@@ -29,16 +29,18 @@
 
 /*
  * TODO:
- * implement defaults for the settings
  * have sourceview grab focus
  * reorderable tabs with keyboard
      gtk_notebook_reorder_child
- * look into line marks
  * open file dialog should start in current folder
+     gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), path);
  * look more into signals
+ * look into line marks
  * configuration à la gedit?
      backup copy?
      auto-save every n minutes?
+ * commandline
+ * search (and replace)
  */
 
 void /*TODO: transform this into a fancy GtkInfoBar */
@@ -151,21 +153,7 @@ check_for_save(Document *doc) {
 }
 
 static void
-read_config(const char *file) {
-	GKeyFile *cfg;
-	GError *error = NULL;
-
-	cfg = g_key_file_new();
-	if(!g_key_file_load_from_file(cfg, file, G_KEY_FILE_NONE, &error)) {
-		if(error) {
-			error_dialog(error->message);
-			g_error_free(error);
-		} else
-			error_dialog("Error: cannot read configuration file!\nWill fallback to defaults.\n");
-		g_key_file_free(cfg);
-		return;
-	}
-
+set_config(GKeyFile *cfg) {
 	settings = g_slice_new0(Settings);
 	//TODO: this might need error-checking
 	settings->font = g_key_file_get_string(cfg, "Lightpad", "font", NULL);
@@ -183,14 +171,39 @@ read_config(const char *file) {
 	settings->right_margin_pos = g_key_file_get_integer(cfg, "Lightpad", "right_margin_pos", NULL);
 	settings->tab_width = g_key_file_get_integer(cfg, "Lightpad", "tab_width", NULL);
 	settings->draw_spaces = g_key_file_get_integer(cfg, "Lightpad", "draw_spaces", NULL);
+}
+
+static void
+init_config(void) {
+	GKeyFile *cfg;
+	const char *path;
+	char *file;
+	gboolean loaded = FALSE;
+
+	cfg = g_key_file_new();
+	path = g_get_user_config_dir();
+	file = g_build_filename(path, "lightpad/lightpad.cfg", NULL);
+	g_free((gpointer)path);
+
+	loaded = g_key_file_load_from_file(cfg, file, G_KEY_FILE_NONE, NULL);
+
+	for(const char *const *dir = g_get_system_config_dirs(); !loaded && *dir; dir++) {
+		file = g_build_filename(*dir, "/lightpad/lightpad.cfg", NULL);
+		loaded = g_key_file_load_from_file(cfg, file, G_KEY_FILE_NONE, NULL);
+	}
+
+	if(loaded)
+		set_config(cfg);
+	/*else
+		die? or implement defaults in the code*/
+
+	g_free(file);
 	g_key_file_free(cfg);
 }
 
 int
 main(int argc, char **argv) {
 	GtkWidget *vbox;
-	const char *path;
-	char *file;
 
 	gtk_init(&argc, &argv);
 
@@ -212,15 +225,8 @@ main(int argc, char **argv) {
 	g_signal_connect(lightpad->window, "key-press-event", G_CALLBACK(on_keypress_window), NULL);
 	g_signal_connect(lightpad->tabs, "page-added", G_CALLBACK(on_page_added), NULL);
 
-	path = g_get_user_config_dir();
-	if(path == NULL)
-		error_dialog("Error: can not determine path to config directory!\nWill fallback to default settings\n");
-	else {
-		file = g_build_filename(path, "lightpad/lightpad.cfg", NULL);
-		g_free((gpointer)path);
-		read_config(file);
-		g_free(file);
-	}
+	init_config();
+
 	new_view(NULL);
 
 	gtk_widget_show_all(lightpad->window);

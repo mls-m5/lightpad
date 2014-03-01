@@ -75,7 +75,7 @@ on_keypress_window(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
 			case GDK_KEY_o:
 					if(open_get_filename(&filename) == GTK_RESPONSE_ACCEPT) {
 						if(doc->new && !doc->modified)
-							insert_into_view(doc, filename); //FIXME: segfault if filename == NULL
+							insert_into_view(doc, filename);
 						else
 							new_view(filename);
 						g_free(filename);
