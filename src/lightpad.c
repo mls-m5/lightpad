@@ -27,6 +27,8 @@
 #include "callbacks.h"
 #include "io.h"
 
+static char **remaining;
+
 /*
  * TODO:
  * have sourceview grab focus
@@ -37,7 +39,6 @@
  * look into line marks
  * backup copy?
  * auto-save every n minutes?
- * commandline
  * search (and replace)
      GtkSourceSearchContext
  */
@@ -205,9 +206,48 @@ init_config(void) {
 	return 0;
 }
 
+static int
+get_options(int argc, char **argv) {
+	GOptionContext *option_context;
+	GError *error = NULL;
+	gboolean display_version = FALSE;
+
+	GOptionEntry option_entries[] = {
+		{ _("version"), 'v', 0, G_OPTION_ARG_NONE, &display_version,
+				_("Display version and exit"), NULL },
+		{ G_OPTION_REMAINING, '\0', 0, G_OPTION_ARG_FILENAME_ARRAY, &remaining, NULL,
+				_("[FILE…]") },
+		{ NULL },
+	};
+
+	option_context = g_option_context_new(_("- Edit text files"));
+	g_option_context_add_main_entries(option_context, option_entries, NULL); //FIXME: translation domain? GETTEXT_PACKAGE
+	g_option_context_add_group(option_context, gtk_get_option_group(TRUE));
+
+	if(g_option_context_parse(option_context, &argc, &argv, &error) == FALSE) {
+		g_fprintf(stderr, "Error: can not parse command line arguments: %s\n", error->message);
+		g_error_free(error);
+		return -1;
+	}
+
+	g_option_context_free(option_context);
+
+	if(display_version == TRUE) {
+		g_fprintf(stdout, _("Lightpad: a simple text editor, based on a keyboard-based workflow. Version %s.\n"), LIGHTPAD_VERSION);
+		return 1;
+	}
+
+	return 0;
+}
+
 int
 main(int argc, char **argv) {
 	GtkWidget *vbox;
+	int options;
+
+	options = get_options(argc, argv);
+	if(options != 0)
+		return options;
 
 	gtk_init(&argc, &argv);
 
@@ -232,7 +272,12 @@ main(int argc, char **argv) {
 	if(init_config() < 0)
 		return -1;
 
-	new_view(NULL);
+	if(remaining) {
+		for (int i = 0; remaining[i]; i++)
+			new_view(remaining[i]);
+		g_strfreev(remaining);
+	} else
+		new_view(NULL);
 
 	gtk_widget_show_all(lightpad->window);
 	gtk_main();

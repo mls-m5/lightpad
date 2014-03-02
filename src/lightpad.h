@@ -17,6 +17,8 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define LIGHTPAD_VERSION "0.1"
+
 typedef struct {
 	GtkWidget *view;
 	char *basename; /* only the name of the document, e.g. /home/foo/bar.txt will be bar.txt */
