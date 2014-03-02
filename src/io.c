@@ -123,8 +123,9 @@ insert_into_view(Document *doc, const char *filename) {
 	gboolean result;
 	GError *error = NULL;
 
+	//FIXME: is this ever the case?
 	if(filename == NULL) {
-		error_dialog("Error: filename is null\n");
+		error_dialog("Error: filename is null.\n");
 		return;
 	}
 
@@ -134,12 +135,12 @@ insert_into_view(Document *doc, const char *filename) {
 			error_dialog(error->message);
 			g_error_free(error);
 		} else
-			error_dialog("Error: cannot read file\n");
+			error_dialog("Error: cannot read file.\n");
 		return;
 	}
 
 	if(!(g_utf8_validate(contents, length, NULL))) {
-		error_dialog("Error: file contents were not utf-8\n");
+		error_dialog("Error: file contents were not UTF-8.\n");
 		g_free(contents);
 		return;
 	}

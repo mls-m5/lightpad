@@ -39,11 +39,11 @@ get_style_scheme(void) {
 	manager = gtk_source_style_scheme_manager_get_default();
 	def_style = gtk_source_style_scheme_manager_get_scheme(manager, settings->scheme);
 	if(def_style == NULL) {
-		error_dialog("Style scheme cannot be found, falling back to 'classic' style scheme");
+		error_dialog("Error: style scheme cannot be found, falling back to 'classic' style scheme");
 
 		def_style = gtk_source_style_scheme_manager_get_scheme(manager, "classic");
 		if(def_style == NULL)
-			error_dialog("Style scheme 'classic' cannot be found, check your GtkSourceView installation.");
+			error_dialog("Error: style scheme 'classic' cannot be found, check your GtkSourceView installation.");
 	}
 
 	return def_style;
@@ -166,7 +166,7 @@ insert_into_buffer(GtkWidget *view, char *contents) {
 	GtkTextIter iter;
 
 	if(contents == NULL) {
-		error_dialog("Error: can not insert file into the buffer! The file contents are null\n");		
+		error_dialog("Error: can not insert file into the buffer!\nThe file contents are null.\n");
 		return;
 	}
 

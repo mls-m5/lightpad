@@ -48,7 +48,7 @@ error_dialog(const char *message) {
 
 	g_fprintf(stderr, message);
 
-	dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+	dialog = gtk_message_dialog_new(GTK_WINDOW(lightpad->window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
 			GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, message);
 	gtk_window_set_title(GTK_WINDOW(dialog), "Error!");
 	gtk_dialog_run(GTK_DIALOG(dialog));
@@ -194,8 +194,8 @@ init_config(void) {
 	if(loaded)
 		set_config(cfg);
 	else {
-		g_fprintf(stderr, "Error: cannot find a configuration file!\nPlease make sure Lightpad\
-				is installed correctly!\n");
+		g_fprintf(stderr,
+				"Error: cannot find a configuration file!\nPlease make sure Lightpad is installed correctly.\n");
 		return -1;
 	}
 
