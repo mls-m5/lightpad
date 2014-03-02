@@ -34,13 +34,12 @@
      gtk_notebook_reorder_child
  * open file dialog should start in current folder
      gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), path);
- * look more into signals
  * look into line marks
- * configuration à la gedit?
-     backup copy?
-     auto-save every n minutes?
+ * backup copy?
+ * auto-save every n minutes?
  * commandline
  * search (and replace)
+     GtkSourceSearchContext
  */
 
 void /*TODO: transform this into a fancy GtkInfoBar */
@@ -113,13 +112,14 @@ close_tab(void) {
 Document *
 get_active_document(void) {
 	GtkWidget *scroll;
-	Document *doc;
+	Document *doc = NULL;
 	int index;
 
-	//FIXME: segfault when there is no scroll object
-	index = gtk_notebook_get_current_page(GTK_NOTEBOOK(lightpad->tabs));
-	scroll = gtk_notebook_get_nth_page(GTK_NOTEBOOK(lightpad->tabs), index);
-	doc = g_object_get_data(G_OBJECT(scroll), "doc");
+	if(gtk_notebook_get_n_pages(GTK_NOTEBOOK(lightpad->tabs)) > 0) {
+		index = gtk_notebook_get_current_page(GTK_NOTEBOOK(lightpad->tabs));
+		scroll = gtk_notebook_get_nth_page(GTK_NOTEBOOK(lightpad->tabs), index);
+		doc = g_object_get_data(G_OBJECT(scroll), "doc");
+	}
 
 	return doc;
 }
@@ -173,7 +173,7 @@ set_config(GKeyFile *cfg) {
 	settings->draw_spaces = g_key_file_get_integer(cfg, "Lightpad", "draw_spaces", NULL);
 }
 
-static void
+static int
 init_config(void) {
 	GKeyFile *cfg;
 	const char *path;
@@ -194,11 +194,16 @@ init_config(void) {
 
 	if(loaded)
 		set_config(cfg);
-	/*else
-		die? or implement defaults in the code*/
+	else {
+		g_fprintf(stderr, "Error: cannot find a configuration file!\nPlease make sure Lightpad\
+				is installed correctly!\n");
+		return -1;
+	}
 
 	g_free(file);
 	g_key_file_free(cfg);
+
+	return 0;
 }
 
 int
@@ -225,7 +230,8 @@ main(int argc, char **argv) {
 	g_signal_connect(lightpad->window, "key-press-event", G_CALLBACK(on_keypress_window), NULL);
 	g_signal_connect(lightpad->tabs, "page-added", G_CALLBACK(on_page_added), NULL);
 
-	init_config();
+	if(init_config() < 0)
+		return -1;
 
 	new_view(NULL);
 

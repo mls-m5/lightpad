@@ -17,8 +17,8 @@
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <glib/gi18n.h>
 #include <gtk/gtk.h>
+#include <glib/gi18n.h>
 #include <gtksourceview/gtksource.h>
 
 #include "lightpad.h"
@@ -35,6 +35,9 @@ save_to_file(Document *doc, gboolean saveas) {
 	char *contents;
 	gboolean result = FALSE;
 	GError *error = NULL;
+
+	if(doc == NULL)
+		return -1;
 
 	if(saveas || doc->new) {
 		dialog = gtk_file_chooser_dialog_new(_("Save File"), GTK_WINDOW(lightpad->window),
@@ -81,7 +84,7 @@ save_to_file(Document *doc, gboolean saveas) {
 			g_error_free(error);
 		} else
 			error_dialog("Error: cannot save to file. Something went wrong\n");
-		return -2;
+		return -1;
 	}
 	gtk_text_buffer_set_modified(buffer, FALSE);
 	return 0;
@@ -136,11 +139,11 @@ insert_into_view(Document *doc, const char *filename) {
 	}
 
 	//FIXME: keep?
-	if(!(g_utf8_validate(contents, length, NULL))) {
-		error_dialog("Error: file contents were not utf-8\n"); //FIXME: segfault
-		g_free(contents);
-		return;
-	}
+	//if(!(g_utf8_validate(contents, length, NULL))) {
+	//	error_dialog("Error: file contents were not utf-8\n"); //FIXME: segfault
+	//	g_free(contents);
+	//	return;
+	//}
 
 	doc->new = FALSE;
 	g_free(doc->basename);

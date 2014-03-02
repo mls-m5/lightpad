@@ -3,7 +3,7 @@ Lightpad
 
 **A simple editor, based on keyboard shortcuts**
 
-Lightpad is a simple text editor, based on a keyboard-based workflow: there are no graphical elements besides the tabs, the source view and the statusbar. This means that there are no buttons and menus and there never will be.
+Lightpad is a simple text editor, based on a keyboard-based workflow: there are no graphical elements besides the tabs and the source view. This means that there are no buttons or menus. There never will be.
 
 Lightpad tries to stay compatible with GEdit shortcut-wise. To help you get going, [here][article] is a list of standard GtkSourceView key combinations as well as some GEdit specific onces. Of course, keyboard shortcuts for features Lightpad does not have are not implemented (such as spell checking and printing).
 

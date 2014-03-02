@@ -74,7 +74,7 @@ on_keypress_window(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
 		switch(event->keyval) {
 			case GDK_KEY_o:
 					if(open_get_filename(&filename) == GTK_RESPONSE_ACCEPT) {
-						if(doc->new && !doc->modified)
+						if(doc != NULL && doc->new && !doc->modified)
 							insert_into_view(doc, filename);
 						else
 							new_view(filename);
@@ -138,8 +138,7 @@ on_page_added(GtkNotebook *notebook, GtkWidget *child, guint page_num, gpointer 
 }
 
 void
-on_modified_buffer(GtkTextBuffer *buffer, gpointer user_data) {
-	Document *doc = (Document *)user_data;
+on_modified_buffer(GtkTextBuffer *buffer, Document *doc) {
 	GtkWidget *scroll;
 	char *title;
 	int index;
