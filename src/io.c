@@ -124,7 +124,7 @@ insert_into_view(Document *doc, const char *filename) {
 	GError *error = NULL;
 
 	if(filename == NULL) {
-		error_dialog("Error: filename is null\n"); //FIXME: segfault
+		error_dialog("Error: filename is null\n");
 		return;
 	}
 
@@ -138,12 +138,11 @@ insert_into_view(Document *doc, const char *filename) {
 		return;
 	}
 
-	//FIXME: keep?
-	//if(!(g_utf8_validate(contents, length, NULL))) {
-	//	error_dialog("Error: file contents were not utf-8\n"); //FIXME: segfault
-	//	g_free(contents);
-	//	return;
-	//}
+	if(!(g_utf8_validate(contents, length, NULL))) {
+		error_dialog("Error: file contents were not utf-8\n");
+		g_free(contents);
+		return;
+	}
 
 	doc->new = FALSE;
 	g_free(doc->basename);

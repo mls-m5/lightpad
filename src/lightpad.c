@@ -53,7 +53,6 @@ error_dialog(const char *message) {
 	gtk_window_set_title(GTK_WINDOW(dialog), "Error!");
 	gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);
-	g_free((gpointer)message);
 }
 
 void
