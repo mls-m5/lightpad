@@ -1,5 +1,9 @@
 Lightpad
 =========
+**A modified version of the original Lightpad**
+
+This fork aims to implement some kind of awesome c++-completion
+
 
 **A simple editor, based on keyboard shortcuts**
 
@@ -19,15 +23,6 @@ The only dependencies required to build and run Lightpad, are GTK3 and GtkSource
 Once the ridiculous amount of dependencies are installed, just run these commands to build and install Lightpad:
 
     $ make
-    # make clean install
-
-Bugs
-----
-
-For any bug or request [fill an issue][bug] on [GitHub][ghp].
-
-  [bug]: https://github.com/Unia/lightpad/issues
-  [ghp]: https://github.com/Unia/lightpad
 
 License
 -------

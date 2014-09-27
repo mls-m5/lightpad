@@ -39,7 +39,7 @@ save_to_file(Document *doc, gboolean saveas) {
 	if(doc == NULL)
 		return -1;
 
-	if(saveas || doc->new) {
+	if(saveas || doc->new_document) {
 		dialog = gtk_file_chooser_dialog_new(_("Save File"), GTK_WINDOW(lightpad->window),
 				GTK_FILE_CHOOSER_ACTION_SAVE, _("_Cancel"), GTK_RESPONSE_CANCEL,
 				_("_Save"), GTK_RESPONSE_ACCEPT, NULL);
@@ -57,7 +57,7 @@ save_to_file(Document *doc, gboolean saveas) {
 		if(filename == NULL)
 			return -1;
 
-		doc->new = FALSE;
+		doc->new_document = FALSE;
 		g_free(doc->basename);
 		doc->basename = g_path_get_basename(filename);
 		g_free(doc->filename);
@@ -75,7 +75,7 @@ save_to_file(Document *doc, gboolean saveas) {
 	gtk_text_buffer_set_modified(GTK_TEXT_BUFFER(buffer), FALSE);
 
 	result = g_file_set_contents(filename, contents, -1, &error);
-	if(saveas || doc->new)
+	if(saveas || doc->new_document)
 		g_free(filename);
 	g_free(contents);
 	if(!result) {
@@ -107,12 +107,12 @@ open_get_filename(char **filename) {
 
 void
 new_view(const char *filename) {
-	Document *new;
+	Document *new_document;
 
-	new = create_new_doc(filename);
-	append_new_tab(new);
+	new_document = create_new_doc(filename);
+	append_new_tab(new_document);
 	if(filename != NULL)
-		insert_into_view(new, filename);
+		insert_into_view(new_document, filename);
 }
 
 void
@@ -145,7 +145,7 @@ insert_into_view(Document *doc, const char *filename) {
 		return;
 	}
 
-	doc->new = FALSE;
+	doc->new_document = FALSE;
 	g_free(doc->basename);
 	doc->basename = g_path_get_basename(filename);
 	g_free(doc->filename);

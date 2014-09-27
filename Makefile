@@ -7,13 +7,13 @@ CFLAGS  = -std=c99 -Wall -Wextra -Wno-unused-parameter
 PREFIX   ?= /usr/local
 BINPREFIX = $(PREFIX)/bin
 
-SRC = src/${PROG}.c src/io.c src/document.c src/callbacks.c
+SRC = src/${PROG}.c src/io.c src/document.c src/callbacks.c src/complete.c src/popup.c
 OBJ = $(SRC:.c=.o)
 
 all: CFLAGS += -Os
 all: $(PROG)
 
-debug: CFLAGS += -g -pedantic
+debug: CFLAGS += -O0 -g -pedantic
 debug: all
 
 .c.o:

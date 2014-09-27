@@ -20,6 +20,7 @@
 #include <gtk/gtk.h>
 #include <glib/gprintf.h>
 
+#include "complete.h"
 #include "lightpad.h"
 #include "document.h"
 #include "io.h"
@@ -36,6 +37,9 @@ on_keypress_view(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
 			case GDK_KEY_i: g_fprintf(stdout, "Go to line\n"); return TRUE; break;
 			case GDK_KEY_d: g_fprintf(stdout, "Delete line\n"); return TRUE; break;
 			case GDK_KEY_k: g_fprintf(stdout, "Clear search highlight\n"); return TRUE; break;
+			case GDK_KEY_space: g_fprintf(stdout, "Complete\n");
+				runComplete();
+			return TRUE; break;
 			default: return FALSE; break;
 		}
 	}
@@ -74,7 +78,7 @@ on_keypress_window(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
 		switch(event->keyval) {
 			case GDK_KEY_o:
 					if(open_get_filename(&filename) == GTK_RESPONSE_ACCEPT) {
-						if(doc != NULL && doc->new && !doc->modified)
+						if(doc != NULL && doc->new_document && !doc->modified)
 							insert_into_view(doc, filename);
 						else
 							new_view(filename);
@@ -99,6 +103,10 @@ on_keypress_window(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
 			case GDK_KEY_ISO_Left_Tab: //FIXME: not working
 					gtk_notebook_prev_page(GTK_NOTEBOOK(lightpad->tabs)); return TRUE;
 			default: break;
+		}
+		if (event->keyval >= GDK_KEY_1 && event->keyval <= GDK_KEY_9){
+			selectPopup(event->keyval - GDK_KEY_1);
+			g_fprintf(stdout, "valde alternativ %d\n", event->keyval - GDK_KEY_0);
 		}
 	}
 

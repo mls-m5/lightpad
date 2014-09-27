@@ -60,11 +60,11 @@ create_new_doc(const char *filename) {
 	if(filename != NULL) {
 		new->basename = g_path_get_basename(filename);
 		new->filename = g_strdup(filename);
-		new->new = FALSE;
+		new->new_document = FALSE;
 	} else {
 		new->basename = g_strdup(_("New file"));
 		new->filename = g_strdup(_("New file"));
-		new->new = TRUE;
+		new->new_document = TRUE;
 	}
 	new->modified = FALSE;
 	buffer = gtk_source_buffer_new(NULL);

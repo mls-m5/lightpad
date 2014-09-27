@@ -26,6 +26,7 @@
 #include "document.h"
 #include "callbacks.h"
 #include "io.h"
+#include "popup.h"
 
 static char **remaining;
 
@@ -253,9 +254,23 @@ main(int argc, char **argv) {
 
 	lightpad = g_slice_new0(Window);
 	lightpad->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	gtk_window_set_default_size((GtkWindow*)lightpad->window, 800, 400);
 	gtk_window_set_title(GTK_WINDOW(lightpad->window), "Lightpad");
 	gtk_window_set_default_icon_name("accessories-text-editor");
 	gtk_container_set_border_width(GTK_CONTAINER(lightpad->window), 0);
+
+	{
+		lightpad->popup = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+		gtk_widget_set_can_focus(lightpad->popup, TRUE);
+		gtk_window_set_decorated(GTK_WINDOW(lightpad->popup), FALSE);
+		gtk_window_set_type_hint(GTK_WINDOW(lightpad->popup), GDK_WINDOW_TYPE_HINT_POPUP_MENU);
+		gtk_window_set_transient_for(GTK_WINDOW(lightpad->popup), lightpad->window);
+
+		GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+		lightpad->popupBox = vbox;
+
+		gtk_container_add(GTK_CONTAINER(lightpad->popup), vbox);
+	}
 
 	vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 	gtk_container_add(GTK_CONTAINER(lightpad->window), vbox);

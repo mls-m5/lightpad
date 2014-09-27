@@ -23,7 +23,7 @@ typedef struct {
 	GtkWidget *view;
 	char *basename; /* only the name of the document, e.g. /home/foo/bar.txt will be bar.txt */
 	char *filename; /* the whole path, so /home/foo/bar.txt */
-	gboolean new;
+	gboolean new_document;
 	gboolean modified;
 } Document;
 
@@ -49,6 +49,8 @@ typedef struct {
 typedef struct {
 	GtkWidget *window;
 	GtkWidget *tabs;
+	GtkWidget *popup;
+	GtkWidget *popupBox;
 } Window;
 
 void error_dialog(const char *message);
